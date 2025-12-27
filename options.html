@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Mission Pupil Notes – Settings</title>
+  <link rel="stylesheet" href="options.css" />
+</head>
+<body>
+  <div class="options-shell">
+    <h1>Mission Pupil Notes – Settings</h1>
+
+    <section class="card">
+      <h2>Storage & backup</h2>
+      <label class="field">
+        <span>Mode</span>
+        <select id="backupMode">
+          <option value="local">Local only</option>
+          <option value="drive">Google Drive (manual upload)</option>
+        </select>
+      </label>
+      <label class="field">
+        <span>Drive folder ID or link</span>
+        <input id="driveFolder" type="text" placeholder="Paste Google Drive folder link or ID..." />
+      </label>
+      <button id="exportBtn" class="btn">Download notes as .txt</button>
+      <button id="exportToDriveBtn" class="btn secondary">
+        Export to Drive (after you wire Drive API)
+      </button>
+      <p class="hint">
+        Drive export will need OAuth & Drive API configuration. For now, only the .txt download is wired.
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>Data</h2>
+      <button id="clearAllBtn" class="btn danger">Clear all notes</button>
+    </section>
+  </div>
+
+  <script src="../common/storage.js"></script>
+  <script src="options.js"></script>
+</body>
+</html>
