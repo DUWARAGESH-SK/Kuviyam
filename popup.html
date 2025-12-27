@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Mission Pupil Notes</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="brand">
+        <span class="brand-logo">MP</span>
+        <span class="brand-text">Mission Pupil Notes</span>
+      </div>
+      <nav class="tabs">
+        <button class="tab active" data-tab="dump">Dump</button>
+        <button class="tab" data-tab="hooks">Hooks</button>
+      </nav>
+    </header>
+
+    <section class="toolbar">
+      <div class="search-box">
+        <input id="searchInput" type="text" placeholder="Search across all notes..." />
+      </div>
+      <div class="filters">
+        <input id="dateFrom" type="date" />
+        <span class="divider">–</span>
+        <input id="dateTo" type="date" />
+        <input id="tagFilter" type="text" placeholder="#tag filter" />
+      </div>
+    </section>
+
+    <main class="content">
+      <!-- Dump tab creation -->
+      <section id="dumpTab" class="panel active">
+        <div class="panel-header">
+          <h2>Dump pages</h2>
+          <button id="addDumpPageBtn" class="btn btn-primary">+ New page</button>
+        </div>
+        <div class="split">
+          <aside class="sidebar">
+            <ul id="dumpPagesList" class="list"></ul>
+          </aside>
+          <section class="editor">
+            <div class="editor-meta">
+              <input id="dumpTitle" type="text" placeholder="Page title..." />
+              <span id="dumpMeta" class="meta-text"></span>
+            </div>
+            <textarea id="dumpContent" class="editor-textarea" placeholder="Write anything here... use #tags inside your text."></textarea>
+            <div class="editor-footer">
+              <button id="saveDumpBtn" class="btn btn-accent">Save dump</button>
+              <button id="deleteDumpBtn" class="btn btn-ghost">Delete page</button>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <!-- Hooks tab -->
+      <section id="hooksTab" class="panel">
+        <div class="panel-header">
+          <h2>Hooks for this site</h2>
+          <div class="context-url">
+            <span id="currentUrl">Loading current tab...</span>
+          </div>
+          <button id="addHookBtn" class="btn btn-primary">+ New hook</button>
+        </div>
+        <div class="split">
+          <aside class="sidebar">
+            <ul id="hooksList" class="list"></ul>
+          </aside>
+          <section class="editor">
+            <div class="editor-meta">
+              <input id="hookTitle" type="text" placeholder="Hook title..." />
+              <span id="hookMeta" class="meta-text"></span>
+            </div>
+            <textarea id="hookContent" class="editor-textarea" placeholder="Notes tied to this site... use #tags inside your text."></textarea>
+            <div class="editor-footer">
+              <button id="saveHookBtn" class="btn btn-accent">Save hook</button>
+              <button id="deleteHookBtn" class="btn btn-ghost">Delete hook</button>
+            </div>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <footer class="app-footer">
+      <a href="../options/options.html" target="_blank">Settings & backup</a>
+    </footer>
+  </div>
+
+  <script src="../common/storage.js"></script>
+  <script src="../common/notes.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
