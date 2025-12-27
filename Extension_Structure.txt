@@ -1,0 +1,18 @@
+write /extension
+  manifest.json
+  /popup
+    popup.html
+    popup.css
+    popup.js
+  /sidepanel
+    sidepanel.html
+    sidepanel.css
+    sidepanel.js
+  /options
+    options.html
+    options.css
+    options.js
+  /common
+    storage.js        # local + Drive abstraction
+    notes.js          # create/edit/delete, tag parsing, search
+    ui.js             # shared UI helpers
