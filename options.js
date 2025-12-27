@@ -28,7 +28,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "mission-pupil-notes.txt";
+    a.download = "kuviyam-notes.txt";
     a.click();
     URL.revokeObjectURL(url);
   });
