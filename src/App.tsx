@@ -39,34 +39,53 @@ function App() {
         return;
       }
 
-      const tabId = tab.id; // Capture ID for closure
+      const tabId = tab.id;
+      const url = tab.url || '';
 
-      // Try sending message first
+      // 1. Check for Restricted URLs
+      if (url.startsWith('edge://') || url.startsWith('chrome://') || url.startsWith('about:') || url.startsWith('chrome-extension://')) {
+        setStatusMsg("Cannot run on internal pages.");
+        return;
+      }
+
+      // 2. Try sending message (Happy Path)
       try {
         await chrome.tabs.sendMessage(tabId, { action: "toggle-panel" });
         window.close();
       } catch (err) {
-        console.log("Content script not ready, injecting...", err);
-        // Fallback: Inject script
+        console.log("Not ready, injecting...", err);
+
+        // 3. Fallback: Force Inject
         try {
           await chrome.scripting.executeScript({
             target: { tabId: tabId },
             files: ['src/content.js']
           });
-          // Retry message after short delay
+
+          // Wait slightly longer for React hydration in content script
+          setStatusMsg("Injecting...");
           setTimeout(async () => {
             try {
               await chrome.tabs.sendMessage(tabId, { action: "toggle-panel" });
               window.close();
             } catch (retryErr) {
-              setStatusMsg("Failed. Refresh page.");
+              // Last resort: Just tell them to refresh if it's truly stuck
+              console.error(retryErr);
+              setStatusMsg("Failed. Please Refresh Page.");
             }
-          }, 500);
-        } catch (injectionErr) {
-          setStatusMsg("Cannot inject here (Restricted URL).");
+          }, 1000);
+
+        } catch (injectionErr: any) {
+          console.error(injectionErr);
+          if (injectionErr?.message?.includes('cannot be scripted')) {
+            setStatusMsg("Page restriction preventing access.");
+          } else {
+            setStatusMsg("Injection Failed. Retry.");
+          }
         }
       }
     } catch (e) {
+      console.error(e);
       setStatusMsg("Error. Try Refreshing.");
     }
   };
@@ -148,7 +167,7 @@ function App() {
           </div>
         </div>
 
-        {statusMsg && <div className="text-xs text-tokyo-warning text-center animate-pulse">{statusMsg}</div>}
+        {statusMsg && <div className="text-xs text-tokyo-warning text-center animate-pulse font-mono bg-black/20 p-1 rounded border border-tokyo-warning/20">{statusMsg}</div>}
 
         {view === 'list' && (
           <div className="space-y-2">
