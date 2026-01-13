@@ -5,91 +5,113 @@ import { FloatingPanel } from './components/FloatingPanel';
 
 console.log("[Kuviyam] Content script loaded");
 
-// --- Container Setup ---
-const container = document.createElement('div');
-container.id = 'kuviyam-root';
-document.body.appendChild(container);
+let panelMounted = false;
+let root: any = null;
 
-const shadowRoot = container.attachShadow({ mode: 'open' });
-const root = createRoot(shadowRoot);
+// ✅ 1. LISTENER FOR MESSAGES (Popup & Shortcut)
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    // Return true to indicate async response if needed (good practice)
 
-const style = document.createElement('style');
-// Ensure high z-index and pointer interaction rules
-style.textContent = `
-  :host { 
-    all: initial; 
-    font-family: sans-serif; 
-    z-index: 2147483647; 
-    position: fixed; 
-    top: 0; 
-    left: 0; 
-    width: 100vw; 
-    height: 100vh; 
-    pointer-events: none;
-  }
-  * { box-sizing: border-box; }
-`;
-shadowRoot.appendChild(style);
+    if (msg.type === "KUV_OPEN_PANEL") {
+        mountPanel(true); // Force open
+    } else if (msg.type === "KUV_TOGGLE_PANEL") {
+        storage.getPanelLayout().then(layout => {
+            if (panelMounted && layout.isOpen) {
+                // Close it
+                unmountPanel();
+                updateOpenState(false);
+            } else {
+                // Open it
+                mountPanel(true);
+            }
+        });
+    }
+    return true;
+});
 
+// ✅ 2. MOUNT LOGIC
+async function mountPanel(forceOpen = false) {
+    if (panelMounted) return;
 
-async function init() {
-    console.log("[Kuviyam] Initializing Panel");
+    // Create Root
+    const container = document.createElement('div');
+    container.id = 'kuviyam-root';
+    document.body.appendChild(container);
 
-    // Safety check: ensure layout exists
+    const shadowRoot = container.attachShadow({ mode: 'open' });
+    root = createRoot(shadowRoot);
+
+    // Styles
+    const style = document.createElement('style');
+    style.textContent = `
+      :host { 
+        all: initial; 
+        font-family: sans-serif; 
+        z-index: 2147483647; 
+        position: fixed; 
+        top: 0; 
+        left: 0; 
+        width: 100%; 
+        height: 100%; 
+        pointer-events: none;
+      }
+      * { box-sizing: border-box; }
+    `;
+    shadowRoot.appendChild(style);
+
+    // Data Loading
     let layout = await storage.getPanelLayout();
     const notes = await storage.getNotes();
     let scratchpad = notes.find(n => n.id === 'global-scratchpad');
 
-    // Default Fallback
-    if (!layout || !layout.width) {
-        layout = {
-            x: window.innerWidth - 350,
-            y: 50,
-            width: 300,
-            height: 400,
-            isMinimized: false,
-            isOpen: true
-        };
-        await storage.savePanelLayout(layout);
-    }
-
-    // Global Note Fallback
     if (!scratchpad) {
         scratchpad = await storage.createNote({
-            title: 'Global Scratchpad',
-            content: '',
-            tags: ['scratchpad'],
-            pinned: true
+            title: 'Global Scratchpad', content: '', tags: ['scratchpad'], pinned: true
         });
         scratchpad.id = 'global-scratchpad';
-        // Force open for new users
-        layout.isOpen = true;
-        await storage.savePanelLayout(layout);
         await storage.saveNote(scratchpad);
+
+        // Defaults
+        layout.isOpen = true;
+        layout.width = 350;
+        layout.height = 400;
+        layout.x = window.innerWidth - 400;
+        layout.y = 50;
+        await storage.savePanelLayout(layout);
     }
 
-    renderPanel(layout, scratchpad);
+    if (forceOpen) {
+        layout.isOpen = true;
+        updateOpenState(true);
+    }
+
+    renderApp(layout, scratchpad);
+    panelMounted = true;
 }
 
-function renderPanel(layout: PanelLayout, note: Note) {
-    // Determine visibility based on internal state
-    if (!layout.isOpen) {
-        // Render nothing (or render hidden container) if meant to be closed
-        root.render(null);
-        return;
+function unmountPanel() {
+    if (root) {
+        root.unmount();
+        const el = document.getElementById('kuviyam-root');
+        if (el) el.remove();
+        panelMounted = false;
+        root = null;
     }
+}
 
+async function updateOpenState(isOpen: boolean) {
+    const layout = await storage.getPanelLayout();
+    layout.isOpen = isOpen;
+    await storage.savePanelLayout(layout);
+}
+
+function renderApp(layout: PanelLayout, note: Note) {
     const handleLayoutChange = async (newLayout: PanelLayout) => {
         await storage.savePanelLayout(newLayout);
     };
 
     const handleSaveNote = async (draft: NoteDraft, id?: string) => {
-        const updatedNote: Note = {
-            ...note,
-            ...draft,
-            id: 'global-scratchpad',
-            updatedAt: Date.now()
-        };
+        const updatedNote: Note = { ...note, ...draft, id: 'global-scratchpad', updatedAt: Date.now() };
         await storage.saveNote(updatedNote);
     };
 
@@ -99,36 +121,18 @@ function renderPanel(layout: PanelLayout, note: Note) {
             onLayoutChange={handleLayoutChange}
             note={note}
             onSaveNote={handleSaveNote}
+            onClose={() => {
+                unmountPanel();
+                updateOpenState(false);
+            }}
         />
     );
 }
 
-// --- Listeners ---
-
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.action === "toggle-panel") {
-        console.log("[Kuviyam] Toggle Command Received");
-        storage.getPanelLayout().then(layout => {
-            const newLayout = { ...layout, isOpen: !layout.isOpen };
-            storage.savePanelLayout(newLayout).then(() => {
-                init(); // Re-render with new state
-            });
-        });
+// ✅ 3. AUTO-REOPEN ON TAB SWITCH (Persistence)
+chrome.storage.local.get("panelLayout", (res: any) => {
+    if (res.panelLayout && res.panelLayout.isOpen) {
+        console.log("Restoring Kuviyam Panel...");
+        mountPanel();
     }
 });
-
-chrome.storage.onChanged.addListener((changes, area) => {
-    if (area === 'local') {
-        if (changes.panelLayout || changes.notes) {
-            init();
-        }
-    }
-});
-
-document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') {
-        init();
-    }
-});
-
-init();
