@@ -3,5 +3,55 @@
 @tailwind utilities;
 
 body {
-  @apply bg-tokyo-bg text-tokyo-fg;
+  @apply bg-tokyo-bg text-tokyo-fg overflow-hidden;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+@layer utilities {
+  .glass {
+    @apply bg-tokyo-bg/80 backdrop-blur-md border border-white/10;
+  }
+
+  .glass-card {
+    @apply bg-tokyo-card/90 backdrop-blur-sm border border-white/5 shadow-xl;
+  }
+
+  .text-shadow {
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  }
+}
+
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  @apply bg-tokyo-fg/20 rounded-full hover:bg-tokyo-accent/50 transition-colors;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+.animate-slide-up {
+  animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
