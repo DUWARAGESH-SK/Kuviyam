@@ -9,8 +9,8 @@ function App() {
   const [view, setView] = useState<'list' | 'edit'>('list');
   const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [currentDomain, setCurrentDomain] = useState<string>('');
+  const [statusMsg, setStatusMsg] = useState('');
 
-  // Search & Filter State
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
 
@@ -20,7 +20,7 @@ function App() {
       if (tab?.url) {
         try {
           setCurrentDomain(new URL(tab.url).hostname);
-        } catch (e) { /* ignore invalid urls */ }
+        } catch (e) { /* ignore */ }
       }
     });
   }, []);
@@ -31,18 +31,46 @@ function App() {
   };
 
   const handleTogglePanel = async () => {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (tab?.id) {
-      try {
-        await chrome.tabs.sendMessage(tab.id, { action: "toggle-panel" });
-        window.close(); // Close popup after action
-      } catch (e) {
-        console.error("Could not toggle panel - maybe restart extension?");
+    setStatusMsg("Opening...");
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (!tab?.id) {
+        setStatusMsg("Error: No Active Tab");
+        return;
       }
+
+      const tabId = tab.id; // Capture ID for closure
+
+      // Try sending message first
+      try {
+        await chrome.tabs.sendMessage(tabId, { action: "toggle-panel" });
+        window.close();
+      } catch (err) {
+        console.log("Content script not ready, injecting...", err);
+        // Fallback: Inject script
+        try {
+          await chrome.scripting.executeScript({
+            target: { tabId: tabId },
+            files: ['src/content.js']
+          });
+          // Retry message after short delay
+          setTimeout(async () => {
+            try {
+              await chrome.tabs.sendMessage(tabId, { action: "toggle-panel" });
+              window.close();
+            } catch (retryErr) {
+              setStatusMsg("Failed. Refresh page.");
+            }
+          }, 500);
+        } catch (injectionErr) {
+          setStatusMsg("Cannot inject here (Restricted URL).");
+        }
+      }
+    } catch (e) {
+      setStatusMsg("Error. Try Refreshing.");
     }
   };
 
-  // Derived State
   const allTags = Array.from(new Set(notes.flatMap(n => n.tags)));
 
   const filteredNotes = notes.filter(n => {
@@ -58,7 +86,6 @@ function App() {
 
   const handleCreateNote = async () => {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-
     setEditingNote({
       id: '',
       title: tab?.title || '',
@@ -98,18 +125,16 @@ function App() {
 
   return (
     <div className="w-[400px] h-[500px] flex flex-col bg-tokyo-bg text-tokyo-fg overflow-hidden">
-      {/* Header */}
       <header className="p-4 border-b border-white/5 bg-tokyo-bg/50 backdrop-blur-sm z-10 flex flex-col gap-3">
         <div className="flex justify-between items-center">
           <h1 className="text-xl font-bold text-tokyo-accent tracking-tight">Kuviyam</h1>
           <div className="flex items-center gap-2">
-            {/* Toggle Button for Floating Panel */}
             <button
               onClick={handleTogglePanel}
-              className="px-2 py-1 text-xs bg-tokyo-card border border-tokyo-accent/30 rounded hover:bg-tokyo-accent hover:text-tokyo-bg transition-colors"
-              title="Open Persistent Floating Panel (Ctrl+Shift+K)"
+              className="px-2 py-1 text-xs bg-tokyo-card border border-tokyo-accent/30 rounded hover:bg-tokyo-accent hover:text-tokyo-bg transition-colors flex items-center gap-1"
+              title="Open Persistent Floating Panel (Alt+Shift+P)"
             >
-              📌 Open Panel
+              <span>📌 Open Panel</span>
             </button>
 
             {view === 'list' && (
@@ -122,6 +147,8 @@ function App() {
             )}
           </div>
         </div>
+
+        {statusMsg && <div className="text-xs text-tokyo-warning text-center animate-pulse">{statusMsg}</div>}
 
         {view === 'list' && (
           <div className="space-y-2">
@@ -156,7 +183,6 @@ function App() {
         )}
       </header>
 
-      {/* Content */}
       <main className="flex-1 overflow-y-auto p-4 custom-scrollbar">
         {view === 'list' ? (
           notes.length === 0 ? (
