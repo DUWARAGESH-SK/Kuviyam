@@ -31,6 +31,16 @@
             ]
         }
     ],
+    "commands": {
+        "toggle-panel": {
+            "suggested_key": {
+                "default": "Ctrl+Shift+K",
+                "mac": "Command+Shift+K",
+                "windows": "Ctrl+Shift+K"
+            },
+            "description": "Toggle Kuviyam Floating Panel"
+        }
+    },
     "web_accessible_resources": [
         {
             "resources": [
