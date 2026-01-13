@@ -1,14 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import type { Note, NoteDraft } from '../types';
+import type { Note, NoteDraft, PanelLayout } from '../types';
 import { NoteEditor } from './NoteEditor';
-
-interface PanelLayout {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-    isMinimized: boolean;
-}
 
 interface FloatingPanelProps {
     initialLayout: PanelLayout;
@@ -30,11 +22,12 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({
 
     const panelRef = useRef<HTMLDivElement>(null);
 
-    // Sync internal state if props change drastically (e.g. from storage load)
+    // Sync internal state if needed (e.g. from storage load)
     useEffect(() => {
-        // Only update if significantly different to avoid loops, or just use initialLayout
-        // prioritizing local state for smooth interaction
-    }, []);
+        if (initialLayout) {
+            setLayout(prev => ({ ...prev, ...initialLayout }));
+        }
+    }, [initialLayout]);
 
     const handleMouseDown = (e: React.MouseEvent) => {
         if (e.target instanceof HTMLElement && e.target.closest('.no-drag')) return;
@@ -60,14 +53,12 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({
 
                 // Basic viewport clamping
                 const clampedX = Math.max(0, Math.min(window.innerWidth - layout.width, newX));
-                const clampedY = Math.max(0, Math.min(window.innerHeight - 30, newY)); // Keep header visible
+                const clampedY = Math.max(0, Math.min(window.innerHeight - 30, newY));
 
                 setLayout(prev => ({ ...prev, x: clampedX, y: clampedY }));
             } else if (resizeDirection) {
                 let newWidth = layout.width;
                 let newHeight = layout.height;
-                let newX = layout.x;
-                let newY = layout.y;
 
                 if (resizeDirection.includes('e')) {
                     newWidth = Math.max(300, e.clientX - layout.x);
@@ -75,7 +66,6 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({
                 if (resizeDirection.includes('s')) {
                     newHeight = Math.max(200, e.clientY - layout.y);
                 }
-                // Todo: Add North and West resizing logic if needed (more complex)
 
                 setLayout(prev => ({ ...prev, width: newWidth, height: newHeight }));
             }
@@ -114,15 +104,15 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({
                 <div
                     className="w-12 h-12 bg-tokyo-card rounded-full shadow-xl border border-tokyo-accent/50 flex items-center justify-center cursor-move hover:scale-110 transition-transform"
                     onMouseDown={handleMouseDown}
+                    style={{ color: '#7aa2f7', fontSize: '24px', cursor: 'pointer' }}
+                    title="Expand Note"
                     onClick={(e) => {
-                        if (!isDragging) {
-                            const newLayout = { ...layout, isMinimized: false };
-                            setLayout(newLayout);
-                            onLayoutChange(newLayout);
-                        }
+                        const newLayout = { ...layout, isMinimized: false };
+                        setLayout(newLayout);
+                        onLayoutChange(newLayout);
                     }}
                 >
-                    <span className="text-xl">📝</span>
+                    📝
                 </div>
             </div>
         );
@@ -138,18 +128,36 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({
                 width: layout.width,
                 height: layout.height,
                 zIndex: 999999,
+                backgroundColor: '#1a1b26cc', // Fallback
+                backdropFilter: 'blur(12px)',
+                borderRadius: '8px',
+                boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                display: 'flex',
+                flexDirection: 'column',
+                fontFamily: 'sans-serif',
+                color: '#a9b1d6'
             }}
-            className="flex flex-col bg-tokyo-bg/95 backdrop-blur-md rounded-lg shadow-2xl border border-white/10 overflow-hidden font-sans text-tokyo-fg"
         >
             {/* Header handled by drag */}
             <div
-                className="h-8 bg-tokyo-card/50 flex justify-between items-center px-3 cursor-move border-b border-white/5 select-none"
+                style={{
+                    height: '32px',
+                    backgroundColor: 'rgba(36, 40, 59, 0.5)',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '0 12px',
+                    cursor: 'move',
+                    borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+                    userSelect: 'none'
+                }}
                 onMouseDown={handleMouseDown}
             >
-                <span className="text-xs font-bold text-tokyo-accent tracking-wider">KUVIYAM</span>
-                <div className="flex gap-2 no-drag">
+                <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#7aa2f7', letterSpacing: '0.05em' }}>KUVIYAM</span>
+                <div className="no-drag" style={{ display: 'flex', gap: '8px' }}>
                     <button
-                        className="hover:text-white"
+                        style={{ background: 'none', border: 'none', color: '#787c99', cursor: 'pointer', fontSize: '14px' }}
                         onClick={() => {
                             const newLayout = { ...layout, isMinimized: true };
                             setLayout(newLayout);
@@ -162,19 +170,33 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-hidden relative no-drag">
-                {/* We reuse NoteEditor but need to adjust it to fit this container */}
-                <NoteEditor
-                    initialNote={note}
-                    onSave={onSaveNote}
-                    onCancel={() => { }} // No cancel in floating mode?
-                />
+            <div className="no-drag" style={{ flex: 1, overflow: 'hidden', position: 'relative', display: 'flex', flexDirection: 'column' }}>
+                <div style={{ flex: 1, overflowY: 'auto', padding: '0' }}>
+                    <NoteEditor
+                        initialNote={note}
+                        onSave={onSaveNote}
+                        onCancel={() => { }}
+                    />
+                </div>
+
                 {/* Resize Handle (Bottom Right) */}
                 <div
-                    className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize z-50 flex items-end justify-end p-0.5 opacity-50 hover:opacity-100"
+                    style={{
+                        position: 'absolute',
+                        bottom: 0,
+                        right: 0,
+                        width: '16px',
+                        height: '16px',
+                        cursor: 'se-resize',
+                        zIndex: 50,
+                        display: 'flex',
+                        alignItems: 'flex-end',
+                        justifyContent: 'flex-end',
+                        padding: '2px'
+                    }}
                     onMouseDown={(e) => handleResizeStart(e, 'se')}
                 >
-                    <div className="w-2 h-2 border-r-2 border-b-2 border-tokyo-fg"></div>
+                    <div style={{ width: '8px', height: '8px', borderRight: '2px solid #787c99', borderBottom: '2px solid #787c99' }}></div>
                 </div>
             </div>
         </div>
