@@ -23,7 +23,6 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({
     const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
     const [isResizing, setIsResizing] = useState(false);
 
-    // Sync state if props change (unlikely in this mount/unmount model but good practice)
     useEffect(() => {
         if (initialLayout) setLayout(prev => ({ ...prev, ...initialLayout }));
     }, [initialLayout]);
@@ -44,8 +43,8 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({
             }
 
             if (isResizing) {
-                const newWidth = Math.max(300, e.clientX - layout.x);
-                const newHeight = Math.max(200, e.clientY - layout.y);
+                const newWidth = Math.max(350, e.clientX - layout.x);
+                const newHeight = Math.max(300, e.clientY - layout.y);
                 setLayout(prev => ({ ...prev, width: newWidth, height: newHeight }));
             }
         };
@@ -54,7 +53,7 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({
             if (isDragging || isResizing) {
                 setIsDragging(false);
                 setIsResizing(false);
-                onLayoutChange(layout); // Save on release
+                onLayoutChange(layout);
             }
         };
 
@@ -78,63 +77,137 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({
                 width: layout.width,
                 height: layout.height,
                 backgroundColor: 'rgba(26, 27, 38, 0.98)',
-                backdropFilter: 'blur(16px)',
-                borderRadius: '12px',
-                boxShadow: '0 20px 60px -10px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.1)',
+                backdropFilter: 'blur(20px)',
+                borderRadius: '16px',
+                boxShadow: '0 25px 70px -15px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(122, 162, 247, 0.2)',
                 display: 'flex',
                 flexDirection: 'column',
-                fontFamily: "'Inter', sans-serif",
+                fontFamily: "'Inter', -apple-system, sans-serif",
                 color: '#a9b1d6',
-                userSelect: 'none'
+                userSelect: 'none',
+                overflow: 'hidden',
+                transition: isDragging || isResizing ? 'none' : 'box-shadow 0.3s ease'
             }}
         >
             {/* Header */}
             <div
                 style={{
-                    height: '40px',
-                    background: 'linear-gradient(to right, rgba(36, 40, 59, 1), rgba(36, 40, 59, 0.8))',
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    padding: '0 16px', cursor: 'grab',
-                    borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
-                    borderTopLeftRadius: '12px', borderTopRightRadius: '12px'
+                    height: '56px',
+                    background: 'linear-gradient(135deg, rgba(122, 162, 247, 0.15) 0%, rgba(36, 40, 59, 0.95) 100%)',
+                    borderBottom: '1px solid rgba(122, 162, 247, 0.1)',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '0 20px',
+                    cursor: 'grab',
+                    borderTopLeftRadius: '16px',
+                    borderTopRightRadius: '16px'
                 }}
                 onMouseDown={handleMouseDown}
             >
-                <span style={{ fontSize: '13px', fontWeight: '800', color: '#7aa2f7', textTransform: 'uppercase' }}>Kuviyam</span>
-                <div className="no-drag">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', pointerEvents: 'none' }}>
+                    <div style={{
+                        width: '8px',
+                        height: '8px',
+                        borderRadius: '50%',
+                        background: 'linear-gradient(135deg, #7aa2f7 0%, #bb9af7 100%)',
+                        boxShadow: '0 0 12px rgba(122, 162, 247, 0.6)'
+                    }}></div>
+                    <span style={{
+                        fontSize: '15px',
+                        fontWeight: '700',
+                        color: '#7aa2f7',
+                        letterSpacing: '0.5px'
+                    }}>
+                        Kuviyam Notes
+                    </span>
+                </div>
+
+                <div className="no-drag" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                     {onClose && (
                         <button
-                            style={{ background: 'none', border: 'none', color: '#787c99', cursor: 'pointer', fontSize: '18px' }}
+                            style={{
+                                background: 'rgba(255, 255, 255, 0.05)',
+                                border: '1px solid rgba(255, 255, 255, 0.1)',
+                                borderRadius: '8px',
+                                color: '#a9b1d6',
+                                cursor: 'pointer',
+                                fontSize: '18px',
+                                width: '32px',
+                                height: '32px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                transition: 'all 0.2s ease',
+                                padding: 0
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                                e.currentTarget.style.borderColor = 'rgba(122, 162, 247, 0.4)';
+                                e.currentTarget.style.color = '#7aa2f7';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                                e.currentTarget.style.color = '#a9b1d6';
+                            }}
                             onClick={onClose}
-                            title="Close Panel"
-                        >✕</button>
+                            title="Close Panel (Return to Popup)"
+                        >
+                            ←
+                        </button>
                     )}
                 </div>
             </div>
 
             {/* Content */}
-            <div className="no-drag" style={{ flex: 1, overflow: 'hidden', position: 'relative', display: 'flex', flexDirection: 'column', userSelect: 'text' }}>
+            <div className="no-drag" style={{
+                flex: 1,
+                overflow: 'hidden',
+                position: 'relative',
+                display: 'flex',
+                flexDirection: 'column',
+                userSelect: 'text',
+                background: 'rgba(26, 27, 38, 0.6)'
+            }}>
                 <NoteEditor initialNote={note} onSave={onSaveNote} onCancel={() => { }} />
 
-                {/* ✅ RESIZE HANDLE (User Requested Style) */}
+                {/* Resize Handle */}
                 <div
                     style={{
                         position: 'absolute',
-                        right: 0,
                         bottom: 0,
-                        width: '16px',
-                        height: '16px',
-                        backgroundColor: '#2563eb', // Explicit Blue
+                        right: 0,
+                        width: '40px',
+                        height: '40px',
                         cursor: 'nwse-resize',
                         zIndex: 100,
-                        borderTopLeftRadius: '4px'
+                        display: 'flex',
+                        alignItems: 'flex-end',
+                        justifyContent: 'flex-end',
+                        padding: '8px',
+                        transition: 'opacity 0.2s ease',
+                        opacity: 0.4
                     }}
                     onMouseDown={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
                         setIsResizing(true);
                     }}
-                />
+                    onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+                    onMouseLeave={(e) => e.currentTarget.style.opacity = '0.4'}
+                    title="Drag to Resize"
+                >
+                    <div style={{
+                        width: '20px',
+                        height: '20px',
+                        borderRight: '3px solid #7aa2f7',
+                        borderBottom: '3px solid #7aa2f7',
+                        borderBottomRightRadius: '4px',
+                        pointerEvents: 'none',
+                        boxShadow: '0 0 8px rgba(122, 162, 247, 0.3)'
+                    }}></div>
+                </div>
             </div>
         </div>
     );
