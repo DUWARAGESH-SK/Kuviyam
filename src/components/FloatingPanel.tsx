@@ -15,21 +15,27 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({
     note,
     onSaveNote
 }) => {
+    // Use state with explicit persistence in mind
     const [layout, setLayout] = useState<PanelLayout>(initialLayout);
-    const [isDragging, setIsDragging] = useState(false);
-    const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-    const [resizeDirection, setResizeDirection] = useState<string | null>(null);
 
-    const panelRef = useRef<HTMLDivElement>(null);
-
+    // Update internal state when props change (e.g. storage update from another tab)
     useEffect(() => {
         if (initialLayout) {
-            setLayout(prev => ({ ...prev, ...initialLayout }));
+            setLayout(current => ({
+                ...current,
+                ...initialLayout
+            }));
         }
     }, [initialLayout]);
 
+    const [isDragging, setIsDragging] = useState(false);
+    const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+    const [isResizing, setIsResizing] = useState(false);
+
+    // Drag Handler
     const handleMouseDown = (e: React.MouseEvent) => {
-        if (e.target instanceof HTMLElement && e.target.closest('.no-drag')) return;
+        // Ignore if clicking on interactive elements or resize handle
+        if ((e.target as HTMLElement).closest('.no-drag')) return;
 
         setIsDragging(true);
         setDragOffset({
@@ -38,46 +44,53 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({
         });
     };
 
-    const handleResizeStart = (e: React.MouseEvent, direction: string) => {
+    // Resize Handler
+    const handleResizeStart = (e: React.MouseEvent) => {
         e.stopPropagation();
         e.preventDefault();
-        setResizeDirection(direction);
+        setIsResizing(true);
     };
 
+    // Global Mouse Interactions
     useEffect(() => {
         const handleMouseMove = (e: MouseEvent) => {
+            // 1. Dragging Logic
             if (isDragging) {
                 const newX = e.clientX - dragOffset.x;
                 const newY = e.clientY - dragOffset.y;
 
-                // Clamping needed? Let's just allow free movement for now, ensuring header is visible
+                // Ensure header stays on screen (top > 0)
                 const clampedY = Math.max(0, newY);
+                // Ensure strictly within window width roughly
+                const clampedX = Math.max(-layout.width + 50, Math.min(window.innerWidth - 50, newX));
 
-                setLayout(prev => ({ ...prev, x: newX, y: clampedY }));
-            } else if (resizeDirection) {
-                let newWidth = layout.width;
-                let newHeight = layout.height;
+                setLayout(prev => ({ ...prev, x: clampedX, y: clampedY }));
+            }
 
-                if (resizeDirection.includes('e')) {
-                    newWidth = Math.max(300, e.clientX - layout.x);
-                }
-                if (resizeDirection.includes('s')) {
-                    newHeight = Math.max(200, e.clientY - layout.y);
-                }
+            // 2. Resizing Logic
+            if (isResizing) {
+                // Calculate new dims based on mouse position
+                const newWidth = e.clientX - layout.x;
+                const newHeight = e.clientY - layout.y;
 
-                setLayout(prev => ({ ...prev, width: newWidth, height: newHeight }));
+                // Apply visual constraints (min-width: 300px, min-height: 200px)
+                const constrainedWidth = Math.max(300, newWidth);
+                const constrainedHeight = Math.max(200, newHeight);
+
+                setLayout(prev => ({ ...prev, width: constrainedWidth, height: constrainedHeight }));
             }
         };
 
         const handleMouseUp = () => {
-            if (isDragging || resizeDirection) {
+            if (isDragging || isResizing) {
                 setIsDragging(false);
-                setResizeDirection(null);
+                setIsResizing(false);
+                // Persist the final state
                 onLayoutChange(layout);
             }
         };
 
-        if (isDragging || resizeDirection) {
+        if (isDragging || isResizing) {
             document.addEventListener('mousemove', handleMouseMove);
             document.addEventListener('mouseup', handleMouseUp);
         }
@@ -86,8 +99,9 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({
             document.removeEventListener('mousemove', handleMouseMove);
             document.removeEventListener('mouseup', handleMouseUp);
         };
-    }, [isDragging, dragOffset, resizeDirection, layout, onLayoutChange]);
+    }, [isDragging, isResizing, dragOffset, layout, onLayoutChange]);
 
+    // -- Render: Minimized State --
     if (layout.isMinimized) {
         return (
             <div
@@ -98,22 +112,23 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({
                     top: layout.y,
                     zIndex: 2147483647
                 }}
-                className="flex flex-col items-end"
+                className="no-drag"
             >
                 <div
-                    className="w-12 h-12 bg-tokyo-card rounded-full shadow-xl border border-tokyo-accent/50 flex items-center justify-center cursor-move hover:scale-110 transition-transform"
-                    onMouseDown={handleMouseDown}
+                    className="w-12 h-12 flex items-center justify-center cursor-pointer transition-transform hover:scale-110"
                     style={{
                         width: '48px', height: '48px',
                         backgroundColor: '#24283b',
                         borderRadius: '50%',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-                        cursor: 'pointer',
-                        border: '2px solid #7aa2f7'
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.3), 0 0 0 2px #7aa2f7'
                     }}
-                    title="Expand Note"
-                    onClick={(e) => {
+                    onMouseDown={(e) => {
+                        // Allow dragging the minimized bubble too!
+                        handleMouseDown(e);
+                    }}
+                    title="Expand Note (Double Click)"
+                    onDoubleClick={() => {
                         const newLayout = { ...layout, isMinimized: false };
                         setLayout(newLayout);
                         onLayoutChange(newLayout);
@@ -121,71 +136,77 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({
                 >
                     <span style={{ fontSize: '24px' }}>📝</span>
                 </div>
+
+                {/* Helper text if needed */}
+                {/* <div style={{ position: 'absolute', top: 50, left: 0, background: 'black', color: 'white', fontSize: 10, padding: 2 }}>{Math.round(layout.x)},{Math.round(layout.y)}</div> */}
             </div>
         );
     }
 
+    // -- Render: Expanded State --
     return (
         <div
             ref={panelRef}
             style={{
-                pointerEvents: 'auto', // CRITICAL: Restore clicks
+                pointerEvents: 'auto',
                 position: 'fixed',
                 left: layout.x,
                 top: layout.y,
                 width: layout.width,
                 height: layout.height,
                 zIndex: 2147483647,
-                backgroundColor: 'rgba(26, 27, 38, 0.95)',
-                backdropFilter: 'blur(12px)',
+                backgroundColor: 'rgba(26, 27, 38, 0.98)',
+                backdropFilter: 'blur(16px)',
                 borderRadius: '12px',
-                boxShadow: '0 20px 50px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.1)',
+                boxShadow: '0 20px 60px -10px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.1)',
                 display: 'flex',
                 flexDirection: 'column',
                 fontFamily: "'Inter', sans-serif",
                 color: '#a9b1d6',
-                transition: isDragging || resizeDirection ? 'none' : 'box-shadow 0.2s'
+                transition: (isDragging || isResizing) ? 'none' : 'box-shadow 0.2s', // disable transition during drag for performance
+                userSelect: 'none' // Prevent text selection while dragging header
             }}
         >
-            {/* Header handled by drag */}
+            {/* --- HEADER --- */}
             <div
                 style={{
                     height: '40px',
-                    background: 'linear-gradient(to right, rgba(36, 40, 59, 0.8), rgba(36, 40, 59, 0.4))',
+                    background: 'linear-gradient(to right, rgba(36, 40, 59, 1), rgba(36, 40, 59, 0.8))',
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
                     padding: '0 16px',
-                    cursor: 'move',
+                    cursor: 'grab',
                     borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
-                    userSelect: 'none',
                     borderTopLeftRadius: '12px',
                     borderTopRightRadius: '12px'
                 }}
                 onMouseDown={handleMouseDown}
+                onMouseUp={(e) => (e.target as HTMLElement).style.cursor = 'grab'}
             >
-                <span style={{ fontSize: '13px', fontWeight: '800', color: '#7aa2f7', textTransform: 'uppercase', letterSpacing: '1px' }}>Kuviyam</span>
+                <span style={{ fontSize: '13px', fontWeight: '800', color: '#7aa2f7', textTransform: 'uppercase', letterSpacing: '1px', pointerEvents: 'none' }}>Kuviyam</span>
                 <div className="no-drag" style={{ display: 'flex', gap: '8px' }}>
                     <button
                         style={{
                             background: 'none', border: 'none', color: '#787c99', cursor: 'pointer',
-                            fontSize: '18px', padding: '4px', lineHeight: 1
+                            fontSize: '24px', padding: '0 8px', lineHeight: '20px', fontWeight: 300
                         }}
                         onClick={() => {
                             const newLayout = { ...layout, isMinimized: true };
                             setLayout(newLayout);
                             onLayoutChange(newLayout);
                         }}
-                        title="Minimize"
+                        title="Minimize (_)"
                     >
-                        −
+                        -
                     </button>
                 </div>
             </div>
 
-            {/* Content */}
-            <div className="no-drag" style={{ flex: 1, overflow: 'hidden', position: 'relative', display: 'flex', flexDirection: 'column' }}>
+            {/* --- CONTENT --- */}
+            <div className="no-drag" style={{ flex: 1, overflow: 'hidden', position: 'relative', display: 'flex', flexDirection: 'column', userSelect: 'text' }}>
                 <div style={{ flex: 1, overflowY: 'auto', padding: '0 4px' }}>
+                    {/* Note Editor gets the remaining space */}
                     <NoteEditor
                         initialNote={note}
                         onSave={onSaveNote}
@@ -193,29 +214,32 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({
                     />
                 </div>
 
-                {/* Resize Handle (Bottom Right) */}
+                {/* --- RESIZE HANDLE --- */}
                 <div
+                    className="resize-handle"
                     style={{
                         position: 'absolute',
                         bottom: 0,
                         right: 0,
-                        width: '24px',
-                        height: '24px',
+                        width: '32px', // Larger hit area
+                        height: '32px',
                         cursor: 'se-resize',
-                        zIndex: 50,
+                        zIndex: 100, // Top of everything
                         display: 'flex',
                         alignItems: 'flex-end',
                         justifyContent: 'flex-end',
-                        padding: '4px'
+                        padding: '6px'
                     }}
-                    onMouseDown={(e) => handleResizeStart(e, 'se')}
-                    title="Drag to resize"
+                    onMouseDown={handleResizeStart}
+                    title="Drag to Resize"
                 >
+                    {/* Visual Indicator */}
                     <div style={{
                         width: '12px', height: '12px',
-                        borderRight: '3px solid rgba(122, 162, 247, 0.5)',
-                        borderBottom: '3px solid rgba(122, 162, 247, 0.5)',
-                        borderBottomRightRadius: '2px'
+                        borderRight: '3px solid #7aa2f7',
+                        borderBottom: '3px solid #7aa2f7',
+                        borderRadius: '1px',
+                        pointerEvents: 'none'
                     }}></div>
                 </div>
             </div>
