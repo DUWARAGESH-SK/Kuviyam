@@ -30,63 +30,51 @@ function App() {
     setNotes(loadedNotes);
   };
 
-  const handleTogglePanel = async () => {
+  // ✅ USER REQUESTED FIX: KUV_OPEN_PANEL
+  const handleOpenPanel = async () => {
     setStatusMsg("Opening...");
     try {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
       if (!tab?.id) {
-        setStatusMsg("Error: No Active Tab");
+        setStatusMsg("No active tab.");
+        return;
+      }
+
+      const url = tab.url || "";
+      if (url.startsWith("edge://") || url.startsWith("chrome://")) {
+        setStatusMsg("Restricted Page.");
         return;
       }
 
       const tabId = tab.id;
-      const url = tab.url || '';
 
-      // 1. Check for Restricted URLs
-      if (url.startsWith('edge://') || url.startsWith('chrome://') || url.startsWith('about:') || url.startsWith('chrome-extension://')) {
-        setStatusMsg("Cannot run on internal pages.");
-        return;
-      }
-
-      // 2. Try sending message (Happy Path)
+      // 1. Send Message
       try {
-        await chrome.tabs.sendMessage(tabId, { action: "toggle-panel" });
+        await chrome.tabs.sendMessage(tabId, { type: "KUV_OPEN_PANEL" });
         window.close();
       } catch (err) {
-        console.log("Not ready, injecting...", err);
-
-        // 3. Fallback: Force Inject
+        console.log("Injection required...", err);
+        // 2. Injection Fallback (Required for already open tabs)
         try {
           await chrome.scripting.executeScript({
             target: { tabId: tabId },
             files: ['src/content.js']
           });
 
-          // Wait slightly longer for React hydration in content script
-          setStatusMsg("Injecting...");
+          // Retry message
           setTimeout(async () => {
-            try {
-              await chrome.tabs.sendMessage(tabId, { action: "toggle-panel" });
-              window.close();
-            } catch (retryErr) {
-              // Last resort: Just tell them to refresh if it's truly stuck
-              console.error(retryErr);
-              setStatusMsg("Failed. Please Refresh Page.");
-            }
-          }, 1000);
+            await chrome.tabs.sendMessage(tabId, { type: "KUV_OPEN_PANEL" });
+            window.close();
+          }, 500);
 
-        } catch (injectionErr: any) {
-          console.error(injectionErr);
-          if (injectionErr?.message?.includes('cannot be scripted')) {
-            setStatusMsg("Page restriction preventing access.");
-          } else {
-            setStatusMsg("Injection Failed. Retry.");
-          }
+        } catch (injectErr) {
+          setStatusMsg("Failed. Refresh Page.");
         }
       }
+
     } catch (e) {
-      console.error(e);
-      setStatusMsg("Error. Try Refreshing.");
+      setStatusMsg("Error.");
     }
   };
 
@@ -149,7 +137,7 @@ function App() {
           <h1 className="text-xl font-bold text-tokyo-accent tracking-tight">Kuviyam</h1>
           <div className="flex items-center gap-2">
             <button
-              onClick={handleTogglePanel}
+              onClick={handleOpenPanel}
               className="px-2 py-1 text-xs bg-tokyo-card border border-tokyo-accent/30 rounded hover:bg-tokyo-accent hover:text-tokyo-bg transition-colors flex items-center gap-1"
               title="Open Persistent Floating Panel (Alt+Shift+P)"
             >
@@ -167,7 +155,7 @@ function App() {
           </div>
         </div>
 
-        {statusMsg && <div className="text-xs text-tokyo-warning text-center animate-pulse font-mono bg-black/20 p-1 rounded border border-tokyo-warning/20">{statusMsg}</div>}
+        {statusMsg && <div className="text-xs text-tokyo-warning text-center animate-pulse bg-black/20 p-1">{statusMsg}</div>}
 
         {view === 'list' && (
           <div className="space-y-2">
