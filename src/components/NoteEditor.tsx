@@ -10,24 +10,29 @@ interface NoteEditorProps {
 export const NoteEditor: React.FC<NoteEditorProps> = ({ initialNote, onSave, onCancel }) => {
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
+    const [tagsInput, setTagsInput] = useState('');
 
     useEffect(() => {
         if (initialNote) {
             setTitle(initialNote.title);
             setContent(initialNote.content);
+            setTagsInput(initialNote.tags.join(', '));
         } else {
             setTitle('');
             setContent('');
+            setTagsInput('');
         }
     }, [initialNote]);
 
     const handleSave = () => {
         if (!title.trim() && !content.trim()) return;
 
+        const tags = tagsInput.split(',').map(t => t.trim()).filter(Boolean);
+
         onSave({
             title,
             content,
-            tags: initialNote?.tags || [],
+            tags,
             domain: initialNote?.domain,
             url: initialNote?.url,
             pinned: initialNote?.pinned || false
@@ -66,11 +71,8 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ initialNote, onSave, onC
                 type="text"
                 placeholder="Tags (comma separated)..."
                 className="bg-transparent text-xs text-tokyo-fg/60 mb-4 outline-none placeholder-tokyo-fg/20 border-b border-tokyo-fg/10 pb-1 focus:border-tokyo-accent/50 transition-colors"
-                value={initialNote?.tags.join(', ') || ''} // This is rudimentary, better to have local state
-                onChange={(e) => {
-                    // We need to handle this via local state or just pass it on save.
-                    // For MVP simplicity, let's treat it as a string locally
-                }}
+                value={tagsInput}
+                onChange={(e) => setTagsInput(e.target.value)}
             />
 
             <textarea
