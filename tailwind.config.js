@@ -14,7 +14,7 @@ export default {
                 'tokyo-accent': '#7aa2f7',     // Blue
                 'tokyo-accent-hover': '#86abff',
                 'tokyo-secondary': '#bb9af7',  // Purple
-                'tokyo-card': '#ff0000ff',
+                'tokyo-card': '#24283b',
                 'tokyo-success': '#9ece6a',    // Green
                 'tokyo-warning': '#e0af68',    // Orange
                 'tokyo-error': '#f7768e',      // Red
