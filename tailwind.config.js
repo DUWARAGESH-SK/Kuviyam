@@ -18,9 +18,16 @@ export default {
                 'tokyo-success': '#9ece6a',    // Green
                 'tokyo-warning': '#e0af68',    // Orange
                 'tokyo-error': '#f7768e',      // Red
+                'primary': '#FACC15',
+                'background-light': '#F8FAFC',
+                'background-dark': '#0F172A',
             },
             fontFamily: {
                 sans: ['Inter', 'sans-serif'],
+                display: ['Plus Jakarta Sans', 'sans-serif'],
+            },
+            borderRadius: {
+                DEFAULT: '1.5rem',
             },
             animation: {
                 'blob': 'blob 7s infinite',
