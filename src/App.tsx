@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { Note, NoteDraft } from './types';
 import { storage } from './utils/storage';
+import { NoteCard } from './components/NoteCard';
 import { NoteEditor } from './components/NoteEditor';
 
 function App() {
@@ -82,6 +83,9 @@ function App() {
     return matchesSearch && matchesTag;
   });
 
+  const siteNotes = currentDomain ? filteredNotes.filter(n => n.domain === currentDomain) : [];
+  const otherNotes = currentDomain ? filteredNotes.filter(n => n.domain !== currentDomain) : filteredNotes;
+
   const handleCreateNote = async () => {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     setEditingNote({
@@ -123,15 +127,15 @@ function App() {
 
   if (view === 'edit') {
     return (
-      <div className="w-[450px] min-h-[600px] flex flex-col bg-white text-slate-800 dark:bg-background-dark dark:text-slate-100 font-display">
-        <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center gap-4">
+      <div className="w-[420px] h-[600px] flex flex-col bg-white text-gray-900">
+        <div className="p-4 border-b border-gray-100 flex items-center gap-3">
           <button
             onClick={() => setView('list')}
-            className="w-10 h-10 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center transition-colors"
+            className="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center transition-colors"
           >
-            <span className="material-symbols-rounded">arrow_back</span>
+            ←
           </button>
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+          <h2 className="font-semibold text-gray-900">
             {editingNote?.id ? 'Edit Note' : 'New Note'}
           </h2>
         </div>
@@ -147,176 +151,243 @@ function App() {
   }
 
   return (
-    <div className="w-[450px] min-h-[600px] font-display bg-white text-slate-800 dark:bg-background-dark dark:text-slate-100 overflow-x-hidden relative flex flex-col">
-      {/* Decorative Doodles Background */}
-      <div className="absolute inset-0 pointer-events-none opacity-[0.03] dark:opacity-[0.05] overflow-hidden">
-        <img alt="" className="absolute w-24 h-24 top-10 -left-10 rotate-[-15deg] dark:invert" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAan07EU_iOBiMZhanxFWddp37GN-vIVLcNt268lhAzDPubTohpjSMaYLD_ivBEKqcJLyDcG0c18M1gGcgZHqh4NTsXhNDy-Phpg3OTgLxLHJXgX5Mb_ft2qMfWYWTG45PUFRxJExIuYFiCEVYCbTqSEx2Mq6-vIEHzh-PTXBgLVaQuBGtZ8LdjHqrJOQnwzB9AnptIBtmZ0MSOVbStj6W3g6Z5R-U-XwuZbTrw1oqCDFT99vl2UsJHbL_3crL6KCfOaSJPJfMNZGmi" />
-        <img alt="" className="absolute w-32 h-32 bottom-20 -right-10 rotate-[45deg] dark:invert" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD1WSXShbf8w3oUi_6ZSIgYma_AnH62ay9ea-RyLnK5JCfwAfE1g94P50Ff0cuwBWPkvmDLMQ-I41-kGT0CIxKlvgTm2dI5ZvDzEmkk0_IrETckmkqDetuDU1oOQ4DWIRJIj50SpNJUkwRdZsCd8ReE6ZPD0HZtsGI48RNeXevK7s2P6QTWwZk2nRa4bbwUhlbqIYltBEUlwP5tb2GOVw9kLfU8i3EML6iHq-osaq5obJQosGTC2gzW_L_rBjviT-ZGvEu5Cebqq4zI" />
-      </div>
-
-      <main className="relative z-10 flex-1 px-8 pt-10 pb-24">
-        {/* Header */}
-        <header className="flex justify-between items-center mb-10">
-          <div>
-            <p className="text-rose-500 font-bold text-xs uppercase tracking-[0.2em] mb-1">Welcome back</p>
-            <h1 className="text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight title-embossed">Kuviyam</h1>
-          </div>
-          <div className="flex gap-3">
-            <button
-              onClick={handleOpenPanel}
-              className="w-12 h-12 rounded-full bg-white dark:bg-slate-800 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.1)] border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-50 transition-all active:scale-95"
-              title="Open Persistent Panel"
-            >
-              <span className="material-symbols-rounded text-2xl font-light">filter_list</span>
-            </button>
-            <button className="w-12 h-12 rounded-full bg-white dark:bg-slate-800 shadow-[0_4px_20_px_-4px_rgba(0,0,0,0.1)] border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-50 transition-all active:scale-95">
-              <span className="material-symbols-rounded text-2xl font-light">grid_view</span>
-            </button>
-            <button className="w-12 h-12 rounded-full bg-white dark:bg-slate-800 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.1)] border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-50 transition-all active:scale-95">
-              <span className="material-symbols-rounded text-2xl font-light">more_horiz</span>
-            </button>
-          </div>
-        </header>
-
-        {/* Search */}
-        <div className="relative mb-8 group">
-          <div className="absolute inset-y-0 left-5 flex items-center text-slate-400 group-focus-within:text-primary transition-colors">
-            <span className="material-symbols-rounded text-[22px]">search</span>
-          </div>
-          <input
-            className="w-full h-16 pl-14 pr-14 bg-slate-50 dark:bg-slate-900 border-none rounded-[2rem] shadow-inner text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/40 transition-all font-medium placeholder-slate-400"
-            placeholder="Type your thoughts..."
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+    <div className="w-[450px] min-h-[884px] font-display bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-100 overflow-x-hidden relative">
+      <main className="relative z-10 px-6 pt-12 pb-32">
+        {/* Doodles Overlay */}
+        <div className="doodle-bg-header">
+          <img alt="" className="doodle-item w-12 h-12 top-4 left-4 rotate-[-15deg] opacity-20 dark:invert" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAan07EU_iOBiMZhanxFWddp37GN-vIVLcNt268lhAzDPubTohpjSMaYLD_ivBEKqcJLyDcG0c18M1gGcgZHqh4NTsXhNDy-Phpg3OTgLxLHJXgX5Mb_ft2qMfWYWTG45PUFRxJExIuYFiCEVYCbTqSEx2Mq6-vIEHzh-PTXBgLVaQuBGtZ8LdjHqrJOQnwzB9AnptIBtmZ0MSOVbStj6W3g6Z5R-U-XwuZbTrw1oqCDFT99vl2UsJHbL_3crL6KCfOaSJPJfMNZGmi" />
+          <img alt="" className="doodle-item w-16 h-16 top-16 right-32 rotate-[45deg] opacity-10 dark:invert" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD1WSXShbf8w3oUi_6ZSIgYma_AnH62ay9ea-RyLnK5JCfwAfE1g94P50Ff0cuwBWPkvmDLMQ-I41-kGT0CIxKlvgTm2dI5ZvDzEmkk0_IrETckmkqDetuDU1oOQ4DWIRJIj50SpNJUkwRdZsCd8ReE6ZPD0HZtsGI48RNeXevK7s2P6QTWwZk2nRa4bbwUhlbqIYltBEUlwP5tb2GOVw9kLfU8i3EML6iHq-osaq5obJQosGTC2gzW_L_rBjviT-ZGvEu5Cebqq4zI" />
         </div>
+        <div className="w-[450px] min-h-[600px] font-display bg-white text-slate-800 dark:bg-background-dark dark:text-slate-100 overflow-x-hidden relative flex flex-col">
+          {/* Decorative Doodles Background */}
+          <div className="absolute inset-0 pointer-events-none opacity-[0.03] dark:opacity-[0.05] overflow-hidden">
+            <img alt="" className="absolute w-24 h-24 top-10 -left-10 rotate-[-15deg] dark:invert" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAan07EU_iOBiMZhanxFWddp37GN-vIVLcNt268lhAzDPubTohpjSMaYLD_ivBEKqcJLyDcG0c18M1gGcgZHqh4NTsXhNDy-Phpg3OTgLxLHJXgX5Mb_ft2qMfWYWTG45PUFRxJExIuYFiCEVYCbTqSEx2Mq6-vIEHzh-PTXBgLVaQuBGtZ8LdjHqrJOQnwzB9AnptIBtmZ0MSOVbStj6W3g6Z5R-U-XwuZbTrw1oqCDFT99vl2UsJHbL_3crL6KCfOaSJPJfMNZGmi" />
+            <img alt="" className="absolute w-32 h-32 bottom-20 -right-10 rotate-[45deg] dark:invert" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD1WSXShbf8w3oUi_6ZSIgYma_AnH62ay9ea-RyLnK5JCfwAfE1g94P50Ff0cuwBWPkvmDLMQ-I41-kGT0CIxKlvgTm2dI5ZvDzEmkk0_IrETckmkqDetuDU1oOQ4DWIRJIj50SpNJUkwRdZsCd8ReE6ZPD0HZtsGI48RNeXevK7s2P6QTWwZk2nRa4bbwUhlbqIYltBEUlwP5tb2GOVw9kLfU8i3EML6iHq-osaq5obJQosGTC2gzW_L_rBjviT-ZGvEu5Cebqq4zI" />
+          </div>
 
-        {/* Tag Filters */}
-        <div className="flex gap-4 mb-10 overflow-x-auto pb-4 custom-scrollbar">
-          <button
-            onClick={() => setSelectedTag(null)}
-            className={`flex items-center gap-2 px-8 py-4 font-bold rounded-2xl shadow-lg transition-all ${!selectedTag
-              ? 'bg-primary text-slate-900 scale-105'
-              : 'bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-primary/30'
-              }`}
-          >
-            <span className="material-symbols-rounded text-lg">apps</span>
-            All
-          </button>
-          <button
-            onClick={() => setSelectedTag('Work')}
-            className={`flex items-center gap-2 px-8 py-4 font-bold rounded-2xl shadow-lg transition-all ${selectedTag === 'Work'
-              ? 'bg-primary text-slate-900 scale-105'
-              : 'bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-primary/30'
-              }`}
-          >
-            <span className="material-symbols-rounded text-lg">business_center</span>
-            Work
-          </button>
-          <button
-            onClick={() => setSelectedTag('Personal')}
-            className={`flex items-center gap-2 px-8 py-4 font-bold rounded-2xl shadow-lg transition-all ${selectedTag === 'Personal'
-              ? 'bg-primary text-slate-900 scale-105'
-              : 'bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-primary/30'
-              }`}
-          >
-            <span className="material-symbols-rounded text-lg">person</span>
-            Personal
-          </button>
-        </div>
-
-        {/* Recent Notes */}
-        <div className="mb-6 flex justify-between items-end px-1">
-          <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">Recent Notes</h2>
-          <button className="text-primary font-bold text-xs uppercase tracking-widest hover:underline transition-all">Explore all</button>
-        </div>
-
-        <div className="space-y-5">
-          {filteredNotes.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-slate-300 dark:text-slate-600">
-              <span className="material-symbols-rounded text-6xl mb-4 opacity-20">library_books</span>
-              <p className="font-semibold">Your notes will appear here</p>
-            </div>
-          ) : (
-            filteredNotes.map((note, index) => (
-              <div
-                key={note.id}
-                onClick={() => handleEditNote(note)}
-                className="bg-white dark:bg-slate-800/50 p-6 rounded-[2.5rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 dark:border-slate-700/50 flex items-center gap-6 transition-all hover:shadow-xl hover:-translate-y-1 cursor-pointer group hover:bg-slate-50/50 dark:hover:bg-slate-800"
-              >
-                <div className={`w-16 h-16 rounded-[1.5rem] flex items-center justify-center text-white shadow-xl ${index % 3 === 0 ? 'bg-indigo-500/90' : index % 3 === 1 ? 'bg-orange-500/90' : 'bg-emerald-500/90'
-                  }`}>
-                  <span className="material-symbols-rounded text-3xl font-light">
-                    {index % 3 === 0 ? 'description' : index % 3 === 1 ? 'edit_note' : 'auto_awesome'}
-                  </span>
+          <main className="relative z-10 flex-1 px-8 pt-10 pb-24">
+            {/* Header */}
+            <header className="relative flex justify-between items-start mb-8 z-10">
+              <header className="flex justify-between items-center mb-10">
+                <div>
+                  <p className="text-rose-500 font-bold text-sm mb-1 tracking-wide">Good Morning!</p>
+                  <h1 className="text-5xl font-extrabold text-[#1E293B] dark:text-white tracking-tight title-embossed">Kuviyam</h1>
+                  <p className="text-rose-500 font-bold text-xs uppercase tracking-[0.2em] mb-1">Welcome back</p>
+                  <h1 className="text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight title-embossed">Kuviyam</h1>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-bold text-xl text-slate-900 dark:text-white truncate mb-1">{note.title || 'Untitled'}</h3>
-                  <p className="text-slate-500 dark:text-slate-400 text-sm truncate">{note.content || 'No description...'}</p>
-                  <div className="flex items-center gap-2 mt-2">
-                    <div className="w-1 h-1 rounded-full bg-slate-300"></div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                      {new Date(note.updatedAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
-                    </p>
+                <div className="flex gap-2">
+                  <div className="flex gap-3">
+                    <button
+                      onClick={handleOpenPanel}
+                      className="w-11 h-11 rounded-full bg-white dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 active:scale-95 transition-transform"
+                      className="w-12 h-12 rounded-full bg-white dark:bg-slate-800 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.1)] border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-50 transition-all active:scale-95"
+                      title="Open Persistent Panel"
+                    >
+                      <span className="material-symbols-rounded text-[22px]">filter_list</span>
+                    </button>
+                    <button className="w-11 h-11 rounded-full bg-white dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 active:scale-95 transition-transform">
+                      <span className="material-symbols-rounded text-[22px]">lightbulb</span>
+                      <span className="material-symbols-rounded text-2xl font-light">grid_view</span>
+                    </button>
+                    <button className="w-11 h-11 rounded-full bg-white dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 active:scale-95 transition-transform">
+                      <span className="material-symbols-rounded text-[22px]">menu</span>
+                      <button className="w-12 h-12 rounded-full bg-white dark:bg-slate-800 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.1)] border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-50 transition-all active:scale-95">
+                        <span className="material-symbols-rounded text-2xl font-light">more_horiz</span>
+                      </button>
                   </div>
-                </div>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteNote(note.id);
-                  }}
-                  className="text-slate-300 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100"
-                >
-                  <span className="material-symbols-rounded text-[28px]">delete</span>
-                </button>
-              </div>
-            ))
-          )}
-        </div>
-      </main>
+              </header>
+
+              {/* Search */}
+              <div className="relative mb-8">
+                <div className="absolute inset-y-0 left-4 flex items-center text-slate-400">
+                  <span className="material-symbols-rounded">search</span>
+                  <div className="relative mb-8 group">
+                    <div className="absolute inset-y-0 left-5 flex items-center text-slate-400 group-focus-within:text-primary transition-colors">
+                      <span className="material-symbols-rounded text-[22px]">search</span>
+                    </div>
+                    <input
+                      className="w-full h-14 pl-12 pr-12 bg-white dark:bg-slate-800 border-none rounded-2xl shadow-sm focus:ring-2 focus:ring-primary/50 text-slate-600 dark:text-slate-200"
+                      placeholder="What's on your mind?"
+                      className="w-full h-16 pl-14 pr-14 bg-slate-50 dark:bg-slate-900 border-none rounded-[2rem] shadow-inner text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/40 transition-all font-medium placeholder-slate-400"
+                      placeholder="Type your thoughts..."
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                    <div className="absolute inset-y-0 right-4 flex items-center text-slate-400">
+                      <span className="material-symbols-rounded text-xl opacity-40">lightbulb</span>
+                    </div>
+                  </div>
+
+                  {/* Tag Filters */}
+                  <div className="flex gap-3 mb-10 overflow-x-auto pb-2 custom-scrollbar">
+                    <div className="flex gap-4 mb-10 overflow-x-auto pb-4 no-scrollbar">
+                      <button
+                        onClick={() => setSelectedTag(null)}
+                        className={`flex items-center gap-2 px-6 py-3 font-bold rounded-2xl shadow-md whitespace-nowrap transition-all ${!selectedTag
+                          ? 'bg-primary text-slate-900 border-none'
+                          : 'bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-600 dark:text-slate-300'
+            className={`flex items-center gap-2 px-8 py-4 font-bold rounded-2xl shadow-lg transition-all ${!selectedTag
+                          ? 'bg-primary text-slate-900 scale-105'
+                          : 'bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-primary/30'
+                          }`}
+                      >
+                        <span className="material-symbols-rounded text-lg">content_paste</span>
+                        <span className="material-symbols-rounded text-lg">apps</span>
+                        All
+                      </button>
+                      <button
+                        onClick={() => setSelectedTag('Work')}
+                        className={`flex items-center gap-2 px-6 py-3 font-bold rounded-2xl shadow-md whitespace-nowrap transition-all ${selectedTag === 'Work'
+                          ? 'bg-primary text-slate-900 border-none'
+                          : 'bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-600 dark:text-slate-300'
+            className={`flex items-center gap-2 px-8 py-4 font-bold rounded-2xl shadow-lg transition-all ${selectedTag === 'Work'
+                          ? 'bg-primary text-slate-900 scale-105'
+                          : 'bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-primary/30'
+                          }`}
+                      >
+                        <span className="material-symbols-rounded text-lg">work</span>
+                        <span className="material-symbols-rounded text-lg">business_center</span>
+                        Work
+                      </button>
+                      <button
+                        onClick={() => setSelectedTag('Personal')}
+                        className={`flex items-center gap-2 px-6 py-3 font-bold rounded-2xl shadow-md whitespace-nowrap transition-all ${selectedTag === 'Personal'
+                          ? 'bg-primary text-slate-900 border-none'
+                          : 'bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-600 dark:text-slate-300'
+            className={`flex items-center gap-2 px-8 py-4 font-bold rounded-2xl shadow-lg transition-all ${selectedTag === 'Personal'
+                          ? 'bg-primary text-slate-900 scale-105'
+                          : 'bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-primary/30'
+                          }`}
+                      >
+                        <span className="material-symbols-rounded text-lg">person</span>
+                        @@ -234,44 +228,48 @@
+                    </div>
+
+                    {/* Recent Notes */}
+                    <div className="mb-6 flex justify-between items-center px-1">
+                      <h2 className="text-xl font-extrabold text-[#1E293B] dark:text-white">Recent Notes</h2>
+                      <button className="text-slate-400 font-bold text-[10px] tracking-widest uppercase" onClick={() => { }}>See All</button>
+                      <div className="mb-6 flex justify-between items-end px-1">
+                        <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">Recent Notes</h2>
+                        <button className="text-primary font-bold text-xs uppercase tracking-widest hover:underline transition-all">Explore all</button>
+                      </div>
+
+                      <div className="space-y-4">
+                        <div className="space-y-5">
+                          {filteredNotes.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-10 text-slate-400">
+                              <p>No notes found.</p>
+                              <div className="flex flex-col items-center justify-center py-16 text-slate-300 dark:text-slate-600">
+                                <span className="material-symbols-rounded text-6xl mb-4 opacity-20">library_books</span>
+                                <p className="font-semibold">Your notes will appear here</p>
+                              </div>
+                              ) : (
+            filteredNotes.map((note, index) => (
+                              <div
+                                key={note.id}
+                                onClick={() => handleEditNote(note)}
+                                className="bg-white dark:bg-slate-800 p-4 rounded-[2rem] shadow-sm border border-slate-50 dark:border-slate-700/50 flex items-center gap-4 transition-all hover:shadow-md cursor-pointer group"
+                                className="bg-white dark:bg-slate-800/50 p-6 rounded-[2.5rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 dark:border-slate-700/50 flex items-center gap-6 transition-all hover:shadow-xl hover:-translate-y-1 cursor-pointer group hover:bg-slate-50/50 dark:hover:bg-slate-800"
+                              >
+                                <div className={`w-14 h-14 rounded-full flex items-center justify-center text-white ${index % 3 === 0 ? 'bg-indigo-500' : index % 3 === 1 ? 'bg-orange-500' : 'bg-teal-500'
+                                  < div className={`w-16 h-16 rounded-[1.5rem] flex items-center justify-center text-white shadow-xl ${index % 3 === 0 ? 'bg-indigo-500/90' : index % 3 === 1 ? 'bg-orange-500/90' : 'bg-emerald-500/90'
+                                    }`}>
+                                  <span className="material-symbols-rounded text-2xl">
+                                    <span className="material-symbols-rounded text-3xl font-light">
+                                      {index % 3 === 0 ? 'description' : index % 3 === 1 ? 'edit_note' : 'auto_awesome'}
+                                    </span>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <h3 className="font-bold text-lg text-slate-800 dark:text-white truncate">{note.title || 'Untitled'}</h3>
+                                  <p className="text-slate-400 text-sm truncate">{note.content || 'No content...'}</p>
+                                  <p className="text-[10px] font-bold text-slate-300 uppercase mt-1">
+                                    {new Date(note.updatedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()}
+                                  </p>
+                                  <h3 className="font-bold text-xl text-slate-900 dark:text-white truncate mb-1">{note.title || 'Untitled'}</h3>
+                                  <p className="text-slate-500 dark:text-slate-400 text-sm truncate">{note.content || 'No description...'}</p>
+                                  <div className="flex items-center gap-2 mt-2">
+                                    <div className="w-1 h-1 rounded-full bg-slate-300"></div>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                      {new Date(note.updatedAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
+                                    </p>
+                                  </div>
+                                </div>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteNote(note.id);
+                                  }}
+                                  className="text-slate-300 hover:text-rose-500 transition-colors"
+                                  className="text-slate-300 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100"
+                                >
+                                  <span className="material-symbols-rounded">more_vert</span>
+                                  <span className="material-symbols-rounded text-[28px]">delete</span>
+                                </button>
+                              </div>
+                              ))
+                              @@ -280,44 +278,46 @@
+                            </main>
 
       {/* Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl border-t border-slate-100 dark:border-slate-800 px-8 pb-10 pt-5 z-50 rounded-t-[3rem] shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
-        <div className="max-w-md mx-auto relative flex justify-between items-center">
-          <button className="flex flex-col items-center gap-1.5 transition-all hover:scale-110 active:scale-90">
-            <span className="material-symbols-rounded text-[32px] text-primary">note_alt</span>
-            <span className="text-[10px] font-black text-primary tracking-widest uppercase">Notes</span>
-          </button>
-          <button className="flex flex-col items-center gap-1.5 transition-all hover:scale-110 active:scale-90">
-            <span className="material-symbols-rounded text-[32px] text-slate-300 dark:text-slate-600">star</span>
-            <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 tracking-widest uppercase">Saved</span>
-          </button>
-          <div className="w-20"></div> {/* Space for FAB */}
-          <button className="flex flex-col items-center gap-1.5 transition-all hover:scale-110 active:scale-90">
-            <span className="material-symbols-rounded text-[32px] text-slate-300 dark:text-slate-600">vpn_key</span>
-            <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 tracking-widest uppercase">Vault</span>
-          </button>
-          <button className="flex flex-col items-center gap-1.5 transition-all hover:scale-110 active:scale-90">
-            <span className="material-symbols-rounded text-[32px] text-slate-300 dark:text-slate-600">settings</span>
-            <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 tracking-widest uppercase">Setup</span>
-          </button>
+                          <nav className="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl ios-tab-shadow px-6 pb-8 pt-4 z-50">
+                            <nav className="fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl border-t border-slate-100 dark:border-slate-800 px-8 pb-10 pt-5 z-50 rounded-t-[3rem] shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
+                              <div className="max-w-md mx-auto relative flex justify-between items-center">
+                                <button className="flex flex-col items-center gap-1 group">
+                                  <span className="material-symbols-rounded text-primary">sticky_note_2</span>
+                                  <span className="text-[10px] font-bold text-primary tracking-wider uppercase">Notes</span>
+                                  <button className="flex flex-col items-center gap-1.5 transition-all hover:scale-110 active:scale-90">
+                                    <span className="material-symbols-rounded text-[32px] text-primary">note_alt</span>
+                                    <span className="text-[10px] font-black text-primary tracking-widest uppercase">Notes</span>
+                                  </button>
+                                  <button className="flex flex-col items-center gap-1 group">
+                                    <span className="material-symbols-rounded text-slate-400 dark:text-slate-500">favorite</span>
+                                    <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 tracking-wider uppercase">Favorites</span>
+                                    <button className="flex flex-col items-center gap-1.5 transition-all hover:scale-110 active:scale-90">
+                                      <span className="material-symbols-rounded text-[32px] text-slate-300 dark:text-slate-600">star</span>
+                                      <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 tracking-widest uppercase">Saved</span>
+                                    </button>
+                                    <div className="w-16"></div>
+                                    <button className="flex flex-col items-center gap-1 group">
+                                      <span className="material-symbols-rounded text-slate-400 dark:text-slate-500">lock</span>
+                                      <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 tracking-wider uppercase">Password</span>
+                                      <div className="w-20"></div> {/* Space for FAB */}
+                                      <button className="flex flex-col items-center gap-1.5 transition-all hover:scale-110 active:scale-90">
+                                        <span className="material-symbols-rounded text-[32px] text-slate-300 dark:text-slate-600">vpn_key</span>
+                                        <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 tracking-widest uppercase">Vault</span>
+                                      </button>
+                                      <button className="flex flex-col items-center gap-1 group">
+                                        <span className="material-symbols-rounded text-slate-400 dark:text-slate-500">settings</span>
+                                        <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 tracking-wider uppercase">Settings</span>
+                                        <button className="flex flex-col items-center gap-1.5 transition-all hover:scale-110 active:scale-90">
+                                          <span className="material-symbols-rounded text-[32px] text-slate-300 dark:text-slate-600">settings</span>
+                                          <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 tracking-widest uppercase">Setup</span>
+                                        </button>
 
-          {/* Floating Action Button */}
-          <div className="absolute left-1/2 -translate-x-1/2 -top-16">
-            <button
-              onClick={handleCreateNote}
-              className="w-20 h-20 bg-primary rounded-[2rem] shadow-[0_12px_40px_-5px_rgba(250,204,21,0.5)] flex items-center justify-center text-slate-900 transform active:scale-90 transition-all hover:scale-105 border-[6px] border-white dark:border-slate-900"
-            >
-              <span className="material-symbols-rounded text-4xl font-black">add</span>
-            </button>
-          </div>
-        </div>
-      </nav>
+                                        {/* Floating Action Button */}
+                                        <div className="absolute left-1/2 -translate-x-1/2 -top-12">
+                                          <div className="absolute left-1/2 -translate-x-1/2 -top-16">
+                                            <button
+                                              onClick={handleCreateNote}
+                                              className="w-16 h-16 bg-primary rounded-full floating-action-button flex items-center justify-center text-slate-900 transform active:scale-90 transition-transform duration-100 border-4 border-white dark:border-slate-900"
+                                              className="w-20 h-20 bg-primary rounded-[2rem] shadow-[0_12px_40px_-5px_rgba(250,204,21,0.5)] flex items-center justify-center text-slate-900 transform active:scale-90 transition-all hover:scale-105 border-[6px] border-white dark:border-slate-900"
+                                            >
+                                              <span className="material-symbols-rounded text-3xl font-bold">add</span>
+                                              <span className="material-symbols-rounded text-4xl font-black">add</span>
+                                            </button>
+                                          </div>
+                                        </div>
+                                      </nav>
 
-      {statusMsg && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 bg-slate-900 text-white dark:bg-primary dark:text-slate-900 rounded-full shadow-2xl font-bold text-sm animate-fade-in flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
-          {statusMsg}
-        </div>
+                                      {statusMsg && (
+                                        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] px-4 py-2 bg-primary text-slate-900 rounded-full shadow-lg font-bold text-sm animate-fade-in">
+                                          <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 bg-slate-900 text-white dark:bg-primary dark:text-slate-900 rounded-full shadow-2xl font-bold text-sm animate-fade-in flex items-center gap-2">
+                                            <div className="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
+                                            {statusMsg}
+                                          </div>
       )}
-    </div>
-  );
+                                        </div>
+                                      );
 }
 
-export default App;
+                                      export default App;
