@@ -25,7 +25,6 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ initialNote, onSave, onC
             setTagsInput(initialNote.tags.join(', '));
         }
 
-        // Setup Speech Recognition (Browser support check)
         if ('webkitSpeechRecognition' in window) {
             // @ts-ignore
             const SpeechRecognition = window.webkitSpeechRecognition;
@@ -56,7 +55,6 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ initialNote, onSave, onC
             const end = textareaRef.current.selectionEnd;
             const newContent = content.substring(0, start) + text + content.substring(end);
             setContent(newContent);
-            // Defer cursor update
             setTimeout(() => {
                 if (textareaRef.current) {
                     textareaRef.current.selectionStart = textareaRef.current.selectionEnd = start + text.length;
@@ -81,7 +79,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ initialNote, onSave, onC
         if (!title.trim() && !content.trim()) return;
         const tags = tagsInput.split(',').map(t => t.trim()).filter(Boolean);
         onSave({
-            title,
+            title: title || 'Untitled',
             content,
             tags,
             domain: initialNote?.domain,
@@ -103,11 +101,9 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ initialNote, onSave, onC
         }
     };
 
-    // Drag & Drop
     const handleDrop = (e: React.DragEvent) => {
         e.preventDefault();
         setIsDragOver(false);
-
         const text = e.dataTransfer.getData('text/plain');
         if (text) {
             insertTextAtCursor(text + '\n');
@@ -118,95 +114,97 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ initialNote, onSave, onC
 
     return (
         <div
-            className={`flex flex-col h-full bg-[#FCFCFF] dark:bg-slate-900 transition-all duration-300 relative ${isFocusMode ? 'p-0' : ''}`}
+            className={`flex flex-col h-full bg-[#FCFCFF] dark:bg-slate-900 transition-all duration-300 relative font-display ${isFocusMode ? 'p-0' : ''}`}
             onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
             onDragLeave={() => setIsDragOver(false)}
             onDrop={handleDrop}
         >
-            {/* Main Header */}
-            <header className="px-6 py-4 flex items-center justify-between border-b border-slate-100 dark:border-slate-800">
+            {/* 1. Exact Header */}
+            <header className="px-6 py-5 flex items-center justify-between border-b border-slate-100 dark:border-slate-800">
                 <div className="flex items-center gap-4">
                     <button
                         onClick={onCancel}
-                        className="w-10 h-10 rounded-full border border-slate-100 dark:border-slate-800 flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                        className="w-11 h-11 rounded-full border border-slate-100 dark:border-slate-800 flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm"
                     >
-                        <span className="material-symbols-rounded text-slate-600 dark:text-slate-400">chevron_left</span>
+                        <span className="material-symbols-rounded text-[#1E293B] dark:text-slate-300">chevron_left</span>
                     </button>
-                    <div>
-                        <h1 className="text-xl font-extrabold text-[#1E293B] dark:text-white leading-tight">Sticky</h1>
-                        <h1 className="text-xl font-extrabold text-[#1E293B] dark:text-white leading-tight">Note</h1>
+                    <div className="flex flex-col">
+                        <span className="text-[19px] font-[900] text-[#1E293B] dark:text-white leading-[1.1]">Sticky</span>
+                        <span className="text-[19px] font-[900] text-[#1E293B] dark:text-white leading-[1.1]">Note</span>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                    <div className="flex bg-slate-50 dark:bg-slate-800 p-1 rounded-2xl gap-1">
-                        <button className="w-10 h-10 flex items-center justify-center text-amber-400">
-                            <span className="material-symbols-rounded">lightbulb</span>
+                <div className="flex items-center gap-3">
+                    <div className="flex bg-[#F8FAFC] dark:bg-slate-800 p-1 rounded-[20px] gap-0 border border-slate-50 dark:border-slate-700">
+                        <button className="w-11 h-11 flex items-center justify-center text-amber-400">
+                            <span className="material-symbols-rounded text-[24px]">lightbulb</span>
                         </button>
-                        <button className="w-10 h-10 flex items-center justify-center text-orange-500">
-                            <span className="material-symbols-rounded">ios_share</span>
+                        <button className="w-11 h-11 flex items-center justify-center text-[#F97316]">
+                            <span className="material-symbols-rounded text-[24px]">ios_share</span>
                         </button>
                         <button
                             onClick={() => setIsFocusMode(!isFocusMode)}
-                            className={`w-10 h-10 flex items-center justify-center ${isFocusMode ? 'text-primary' : 'text-slate-400'}`}
+                            className={`w-11 h-11 flex items-center justify-center ${isFocusMode ? 'text-[#7070FF]' : 'text-slate-400'}`}
                         >
-                            <span className="material-symbols-rounded">open_in_full</span>
+                            <span className="material-symbols-rounded text-[24px]">open_in_full</span>
                         </button>
                     </div>
                     <button
                         onClick={handleSave}
-                        className="bg-primary text-white px-8 py-3 rounded-2xl font-bold text-sm shadow-lg shadow-primary/30 hover:brightness-110 transition-all active:scale-95"
+                        className="bg-[#7070FF] text-white px-9 py-3 rounded-[18px] font-black text-sm shadow-[0_8px_20px_-4px_rgba(112,112,255,0.4)] hover:brightness-110 transition-all active:scale-95 tracking-wide"
                     >
                         Save
                     </button>
                 </div>
             </header>
 
-            {/* Content Area */}
-            <div className={`flex-1 overflow-auto px-8 pt-8 pb-32 transition-all ${isFocusMode ? 'max-w-4xl mx-auto w-full' : ''}`}>
-                {/* Meta Bar */}
-                <div className="flex items-center justify-between mb-8">
-                    <div className="flex items-center gap-2">
-                        <span className="material-symbols-rounded text-primary text-sm">arrow_back</span>
-                        <span className="text-primary font-bold text-xs tracking-widest uppercase">Drafts</span>
-                    </div>
+            {/* 2. Content Area */}
+            <div className={`flex-1 overflow-auto px-8 pt-10 pb-32 transition-all ${isFocusMode ? 'max-w-4xl mx-auto w-full' : ''}`}>
+                {/* Meta Row */}
+                <div className="flex items-center justify-between mb-10">
+                    <button onClick={onCancel} className="flex items-center gap-2 group">
+                        <span className="material-symbols-rounded text-[#7070FF] text-lg font-bold">arrow_back</span>
+                        <span className="text-[#7070FF] font-[900] text-[11px] tracking-[0.14em] uppercase">Drafts</span>
+                    </button>
                     <div className="flex items-center gap-6">
-                        <button className="text-rose-400">
-                            <span className="material-symbols-rounded fill-current">favorite</span>
+                        <button className="text-[#F43F5E] transition-transform hover:scale-110">
+                            <span className="material-symbols-rounded text-[22px] fill-current">favorite</span>
                         </button>
-                        <button className="w-6 h-6 rounded bg-violet-500"></button>
+                        <button className="w-6 h-6 rounded-[4px] bg-[#8B5CF6] shadow-sm"></button>
                         <button className="text-slate-400">
-                            <span className="material-symbols-rounded text-xl">more_horiz</span>
+                            <span className="material-symbols-rounded text-[24px]">more_horiz</span>
                         </button>
                     </div>
                 </div>
 
-                {/* Title */}
+                {/* Exact Title */}
                 <input
                     type="text"
                     placeholder="Note Title"
-                    className="w-full bg-transparent text-4xl font-extrabold text-[#1E293B] dark:text-white mb-6 outline-none placeholder-slate-200 dark:placeholder-slate-700 leading-tight"
+                    className="w-full bg-transparent text-[36px] font-[900] text-[#0F172A] dark:text-white mb-6 outline-none placeholder-slate-200 dark:placeholder-slate-700 leading-tight uppercase tracking-tight"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    autoFocus
                 />
 
-                {/* Tags */}
-                <div className="flex flex-wrap gap-3 mb-8 items-center">
+                {/* Exact Tags */}
+                <div className="flex flex-wrap gap-3 mb-10 items-center">
                     {tags.map((tag, idx) => (
                         <div
                             key={idx}
-                            className={`px-4 py-1.5 rounded-full flex items-center gap-2 text-sm font-bold ${idx % 2 === 0
-                                    ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400'
-                                    : 'bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400'
+                            className={`px-5 py-2 rounded-full flex items-center gap-2 text-[14px] font-bold ${idx % 2 === 0
+                                    ? 'bg-[#DCFCE7] text-[#166534] dark:bg-emerald-500/10 dark:text-emerald-400'
+                                    : 'bg-[#FEF9C3] text-[#854D0E] dark:bg-amber-500/10 dark:text-amber-400'
                                 }`}
                         >
-                            #{tag}
-                            <button onClick={() => {
-                                const newTags = tags.filter((_, i) => i !== idx);
-                                setTagsInput(newTags.join(', '));
-                            }}>
-                                <span className="material-symbols-rounded text-sm">close</span>
+                            #{tag.toLowerCase()}
+                            <button
+                                onClick={() => {
+                                    const newTags = tags.filter((_, i) => i !== idx);
+                                    setTagsInput(newTags.join(', '));
+                                }}
+                                className="opacity-60 hover:opacity-100"
+                            >
+                                <span className="material-symbols-rounded text-[16px]">close</span>
                             </button>
                         </div>
                     ))}
@@ -215,23 +213,23 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ initialNote, onSave, onC
                             const newTag = prompt('Enter new tag:');
                             if (newTag) setTagsInput(prev => prev ? `${prev}, ${newTag}` : newTag);
                         }}
-                        className="text-primary font-bold text-sm ml-1"
+                        className="text-[#7070FF] font-black text-[14px] ml-2 hover:underline"
                     >
                         + Add tags
                     </button>
                 </div>
 
-                {/* Toolbar */}
-                <div className="flex items-center gap-4 mb-10 px-6 py-3 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-50 dark:border-slate-700/50 w-fit mx-auto sticky top-0 z-10 transition-shadow hover:shadow-md">
-                    <button onClick={handleCopy} className="text-slate-600 dark:text-slate-300 font-bold text-sm px-2">Copy</button>
-                    <div className="w-px h-4 bg-slate-100 dark:bg-slate-700"></div>
-                    <button onClick={handlePaste} className="text-slate-600 dark:text-slate-300 font-bold text-sm px-2">Paste</button>
-                    <div className="w-px h-4 bg-slate-100 dark:bg-slate-700"></div>
-                    <button onClick={() => insertTextAtCursor('**bold** ')} className="text-slate-800 dark:text-white font-extrabold text-lg px-2">B</button>
-                    <button onClick={() => insertTextAtCursor('*italic* ')} className="text-slate-800 dark:text-white italic text-lg px-2">I</button>
-                    <div className="w-px h-4 bg-slate-100 dark:bg-slate-700"></div>
-                    <button onClick={() => insertTextAtCursor('- ')} className="flex items-center gap-2 text-slate-800 dark:text-white font-bold text-sm px-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-primary/60"></span>
+                {/* Exact Floating Toolbar */}
+                <div className="flex items-center gap-1 mb-12 px-7 py-4 bg-white dark:bg-slate-800 rounded-[22px] shadow-[0_10px_30px_-10px_rgba(0,0,0,0.08)] border border-slate-50 dark:border-slate-700/50 w-fit mx-auto sticky top-4 z-10 transition-shadow">
+                    <button onClick={handleCopy} className="text-[#475569] dark:text-slate-300 font-extrabold text-[15px] px-3 hover:text-[#0F172A]">Copy</button>
+                    <div className="w-[1.5px] h-5 bg-slate-100 dark:bg-slate-700 mx-2"></div>
+                    <button onClick={handlePaste} className="text-[#475569] dark:text-slate-300 font-extrabold text-[15px] px-3 hover:text-[#0F172A]">Paste</button>
+                    <div className="w-[1.5px] h-5 bg-slate-100 dark:bg-slate-700 mx-2"></div>
+                    <button onClick={() => insertTextAtCursor('**bold** ')} className="text-[#1E293B] dark:text-white font-[900] text-[18px] px-3">B</button>
+                    <button onClick={() => insertTextAtCursor('*italic* ')} className="text-[#1E293B] dark:text-white italic text-[18px] px-3 serif">I</button>
+                    <div className="w-[1.5px] h-5 bg-slate-100 dark:bg-slate-700 mx-2"></div>
+                    <button onClick={() => insertTextAtCursor('- ')} className="flex items-center gap-2 text-[#475569] dark:text-white font-extrabold text-[15px] px-3">
+                        <span className="w-2 h-2 rounded-full bg-[#7070FF]/50"></span>
                         List
                     </button>
                 </div>
@@ -241,39 +239,45 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ initialNote, onSave, onC
                     <textarea
                         ref={textareaRef}
                         placeholder="Start your masterpiece here..."
-                        className="w-full h-full min-h-[400px] bg-transparent text-slate-600 dark:text-slate-300 text-xl resize-none outline-none leading-relaxed placeholder-slate-200 dark:placeholder-slate-700"
+                        className="w-full h-full min-h-[400px] bg-transparent text-[#64748B] dark:text-slate-300 text-[22px] font-medium resize-none outline-none leading-[1.6] placeholder-slate-200 dark:placeholder-slate-700"
                         value={content}
                         onChange={(e) => setContent(e.target.value)}
                     />
                 </div>
             </div>
 
-            {/* Voice FAB */}
+            {/* Exact Voice FAB */}
             <button
                 onClick={toggleVoice}
-                className={`fixed bottom-24 right-8 w-20 h-20 rounded-full flex items-center justify-center shadow-2xl transition-all hover:scale-105 active:scale-95 z-50 ${isListening
-                        ? 'bg-rose-500 animate-pulse text-white'
-                        : 'bg-primary text-white shadow-primary/40'
+                className={`fixed bottom-12 right-10 w-[84px] h-[84px] rounded-full flex items-center justify-center shadow-[0_15px_40px_-5px_rgba(112,112,255,0.45)] transition-all hover:scale-105 active:scale-95 z-50 ${isListening
+                        ? 'bg-[#F43F5E] animate-pulse text-white'
+                        : 'bg-[#7070FF] text-white'
                     }`}
                 title={isListening ? 'Stop Listening' : 'Start Dictation'}
             >
-                <span className="material-symbols-rounded text-3xl">mic</span>
+                <span className="material-symbols-rounded text-[38px]">mic</span>
                 {!isListening && (
-                    <div className="absolute inset-0 rounded-full bg-primary animate-ping opacity-20"></div>
+                    <div className="absolute inset-0 rounded-full bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
                 )}
             </button>
 
-            {/* Footer */}
-            <footer className="px-8 py-4 border-t border-slate-50 dark:border-slate-800 flex items-center justify-between text-slate-400 dark:text-slate-500 bg-white dark:bg-slate-900">
-                {initialNote?.url ? (
-                    <div className="flex items-center gap-2 text-xs font-medium">
-                        <span className="material-symbols-rounded text-sm">link</span>
-                        Linked to: <a href={initialNote.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{initialNote.domain}</a>
-                    </div>
-                ) : (
-                    <div className="text-xs font-medium">New Draft</div>
-                )}
-                <div className="w-4 h-4 rounded-tl-full border-t border-l border-primary/20"></div>
+            {/* Exact Footer */}
+            <footer className="px-10 py-6 border-t border-slate-50 dark:border-slate-800 flex items-center justify-between text-[#94A3B8] dark:text-slate-500 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
+                <div className="flex items-center gap-3">
+                    <span className="material-symbols-rounded text-[18px]">link</span>
+                    <span className="text-[14px] font-bold">Linked to:</span>
+                    <a
+                        href={initialNote?.url || '#'}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[#7070FF] font-bold text-[14px] hover:underline"
+                    >
+                        {initialNote?.domain || 'localhost'}
+                    </a>
+                </div>
+                <div className="relative w-5 h-5">
+                    <div className="absolute right-0 bottom-0 w-full h-full border-r-[3px] border-b-[3px] border-[#7070FF]/25 rounded-br-[4px]"></div>
+                </div>
             </footer>
         </div>
     );
