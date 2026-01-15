@@ -140,25 +140,12 @@ function App() {
 
   if (view === 'edit') {
     return (
-      <div className="w-[450px] min-h-[600px] flex flex-col bg-white text-slate-800 dark:bg-background-dark dark:text-slate-100 font-display">
-        <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center gap-4">
-          <button
-            onClick={() => setView('list')}
-            className="w-10 h-10 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center transition-colors px-0 cursor-pointer"
-          >
-            <span className="material-symbols-rounded">arrow_back</span>
-          </button>
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-            {editingNote?.id ? 'Edit Note' : 'New Note'}
-          </h2>
-        </div>
-        <div className="flex-1 overflow-auto">
-          <NoteEditor
-            initialNote={editingNote}
-            onSave={handleSaveNote}
-            onCancel={() => setView('list')}
-          />
-        </div>
+      <div className="w-[450px] min-h-[884px] bg-white text-slate-800 dark:bg-background-dark dark:text-slate-100 font-display">
+        <NoteEditor
+          initialNote={editingNote}
+          onSave={handleSaveNote}
+          onCancel={() => setView('list')}
+        />
       </div>
     );
   }
