@@ -8,6 +8,7 @@ export interface Note {
     url?: string;  // For contextual notes
     domain?: string; // For filtering by site
     pinned: boolean;
+    color?: string;
     position?: { x: number; y: number }; // Legacy field
 }
 
