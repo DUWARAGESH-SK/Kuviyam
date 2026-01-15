@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import type { Note, NoteDraft } from './types';
 import { storage } from './utils/storage';
 import { NoteEditor } from './components/NoteEditor';
+import { TagBar } from './components/TagBar';
+import { TagModal } from './components/TagModal';
 
 function App() {
   const [notes, setNotes] = useState<Note[]>([]);
@@ -12,6 +14,7 @@ function App() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [isTagModalOpen, setIsTagModalOpen] = useState(false);
 
   useEffect(() => {
     loadNotes();
@@ -72,7 +75,21 @@ function App() {
     }
   };
 
-  const allTags = Array.from(new Set(notes.flatMap(n => n.tags)));
+  const tagStats = useMemo(() => {
+    const stats: Record<string, { name: string; count: number; lastUsed: number }> = {};
+    notes.forEach(note => {
+      note.tags.forEach(tag => {
+        if (!stats[tag]) {
+          stats[tag] = { name: tag, count: 0, lastUsed: 0 };
+        }
+        stats[tag].count++;
+        stats[tag].lastUsed = Math.max(stats[tag].lastUsed, note.updatedAt);
+      });
+    });
+    return Object.values(stats).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+  }, [notes]);
+
+  const topTags = tagStats.slice(0, 5); // Show top 5 tags in the bar
 
   const filteredNotes = notes.filter(n => {
     const matchesSearch = (n.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -196,38 +213,12 @@ function App() {
         </div>
 
         {/* Tag Filters */}
-        <div className="flex gap-3 mb-10 overflow-x-auto pb-2 custom-scrollbar">
-          <button
-            onClick={() => setSelectedTag(null)}
-            className={`flex items-center gap-2 px-6 py-3 font-bold rounded-2xl shadow-md whitespace-nowrap transition-all ${!selectedTag
-              ? 'bg-primary text-slate-900 border-none'
-              : 'bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-600 dark:text-slate-300'
-              }`}
-          >
-            <span className="material-symbols-rounded text-lg">apps</span>
-            All
-          </button>
-          <button
-            onClick={() => setSelectedTag('Work')}
-            className={`flex items-center gap-2 px-6 py-3 font-bold rounded-2xl shadow-md whitespace-nowrap transition-all ${selectedTag === 'Work'
-              ? 'bg-primary text-slate-900 border-none'
-              : 'bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-600 dark:text-slate-300'
-              }`}
-          >
-            <span className="material-symbols-rounded text-lg">business_center</span>
-            Work
-          </button>
-          <button
-            onClick={() => setSelectedTag('Personal')}
-            className={`flex items-center gap-2 px-6 py-3 font-bold rounded-2xl shadow-md whitespace-nowrap transition-all ${selectedTag === 'Personal'
-              ? 'bg-primary text-slate-900 border-none'
-              : 'bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-600 dark:text-slate-300'
-              }`}
-          >
-            <span className="material-symbols-rounded text-lg">person</span>
-            Personal
-          </button>
-        </div>
+        <TagBar
+          tags={topTags}
+          selectedTag={selectedTag}
+          onTagSelect={setSelectedTag}
+          onShowAll={() => setIsTagModalOpen(true)}
+        />
 
         {/* Recent Notes */}
         <div className="mb-6 flex justify-between items-center px-1">
@@ -312,6 +303,14 @@ function App() {
           {statusMsg}
         </div>
       )}
+
+      <TagModal
+        isOpen={isTagModalOpen}
+        onClose={() => setIsTagModalOpen(false)}
+        tags={tagStats}
+        selectedTag={selectedTag}
+        onTagSelect={setSelectedTag}
+      />
     </div>
   );
 }
