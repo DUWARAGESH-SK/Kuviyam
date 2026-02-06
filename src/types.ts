@@ -10,6 +10,7 @@ export interface Note {
     pinned: boolean;
     color?: string;
     position?: { x: number; y: number }; // Legacy field
+    folderIds?: string[];
 }
 
 export type NoteDraft = Omit<Note, 'id' | 'createdAt' | 'updatedAt'>;
@@ -21,4 +22,12 @@ export interface PanelLayout {
     height: number;
     isMinimized: boolean;
     isOpen: boolean;
+}
+
+export interface Folder {
+    id: string;
+    name: string;
+    createdAt: number;
+    itemCount: number;
+    parentId?: string;
 }
