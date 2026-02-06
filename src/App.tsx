@@ -382,7 +382,7 @@ function App() {
       <TagModal
         isOpen={isTagModalOpen}
         onClose={() => setIsTagModalOpen(false)}
-        tags={tagStats}
+        notes={notes}
         selectedTag={selectedTag}
         onTagSelect={setSelectedTag}
       />
