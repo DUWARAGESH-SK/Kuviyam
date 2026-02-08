@@ -101,6 +101,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ initialNote, onSave, onC
             tags,
             domain: initialNote?.domain,
             url: initialNote?.url,
+            favicon: initialNote?.favicon,
             pinned: isPinned,
             color: '#8B5CF6', // Default
             folderIds: selectedFolderIds
@@ -132,6 +133,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ initialNote, onSave, onC
                 tags,
                 domain: initialNote?.domain,
                 url: initialNote?.url,
+                favicon: initialNote?.favicon,
                 pinned: newPinned,
                 color: '#8B5CF6',
                 folderIds: selectedFolderIds
@@ -245,6 +247,28 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ initialNote, onSave, onC
 
                 {/* Main Scroll Container */}
                 <div className="flex-1 overflow-y-auto overflow-x-hidden px-10 pb-32 custom-scrollbar">
+
+                    {/* Linked Website Banner */}
+                    {initialNote?.url && (
+                        <div className="mb-6 animate-fade-in">
+                            <a
+                                href={initialNote.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 font-bold text-sm transition-all group border border-indigo-500/20"
+                            >
+                                {initialNote.favicon ? (
+                                    <img src={initialNote.favicon} alt="" className="w-4 h-4 object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                                ) : (
+                                    <span className="material-symbols-rounded text-[18px]">public</span>
+                                )}
+                                <span className="underline decoration-indigo-500/30 group-hover:decoration-indigo-500 underline-offset-2">
+                                    Linked to {initialNote.domain || 'Website'}
+                                </span>
+                                <span className="material-symbols-rounded text-[16px] opacity-70 group-hover:translate-x-0.5 transition-transform">open_in_new</span>
+                            </a>
+                        </div>
+                    )}
 
                     {/* Title Input */}
                     <textarea
