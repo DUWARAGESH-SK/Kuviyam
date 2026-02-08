@@ -206,13 +206,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ initialNote, onSave, onC
 
                     <div className="flex items-center gap-4">
                         <div className="flex bg-[#F8FAFC] dark:bg-slate-800/80 p-1.5 rounded-full gap-1 border border-slate-50 dark:border-slate-700/50">
-                            <button
-                                onClick={() => setIsFolderModalOpen(true)}
-                                className="w-11 h-11 flex items-center justify-center text-amber-500 hover:bg-white dark:hover:bg-slate-700 rounded-full transition-colors cursor-pointer"
-                                title="Add to Folder"
-                            >
-                                <span className="material-symbols-rounded text-[24px]">create_new_folder</span>
-                            </button>
+
                             <button
                                 onClick={onToggleTheme}
                                 className="w-11 h-11 flex items-center justify-center text-slate-400 hover:bg-white dark:hover:bg-slate-700 rounded-full transition-colors cursor-pointer"
@@ -256,7 +250,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ initialNote, onSave, onC
             )}
 
             {/* 2. Content Body */}
-            <main className={`flex-1 overflow-auto px-10 pt-10 pb-32 transition-all ${isFocusMode ? 'max-w-4xl mx-auto w-full pt-20' : ''}`}>
+            <main className={`flex-1 overflow-y-auto overflow-x-hidden px-10 pt-10 pb-32 transition-all ${isFocusMode ? 'max-w-4xl mx-auto w-full pt-20' : ''}`}>
                 {/* Secondary Header Row */}
                 {!isFocusMode && (
                     <div className="flex items-center justify-between mb-10">
@@ -273,11 +267,12 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ initialNote, onSave, onC
                                 <span className={`material-symbols-rounded text-[28px] ${isPinned ? 'fill-current' : ''}`}>favorite</span>
                             </button>
                             <button
-                                onClick={toggleColor}
-                                className="w-7 h-7 rounded-[8px] shadow-sm ring-2 ring-offset-2 ring-transparent hover:ring-slate-100 transition-all active:scale-90 cursor-pointer"
-                                style={{ backgroundColor: noteColor }}
-                                title="Change Note Color"
-                            ></button>
+                                onClick={() => setIsFolderModalOpen(true)}
+                                className="text-slate-300 dark:text-slate-700 hover:text-primary transition-colors cursor-pointer"
+                                title="Add to Folder"
+                            >
+                                <span className={`material-symbols-rounded text-[24px] ${selectedFolderIds.length > 0 ? 'fill-current text-primary' : ''}`}>create_new_folder</span>
+                            </button>
                             <button
                                 onClick={() => displayStatus('Options coming soon!')}
                                 className="text-slate-300 dark:text-slate-700 hover:text-slate-500 transition-colors cursor-pointer"
