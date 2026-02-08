@@ -58,74 +58,75 @@ export const FolderSelectionModal: React.FC<FolderSelectionModalProps> = ({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm animate-fade-in font-display">
-            <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[2rem] shadow-2xl border border-slate-100 dark:border-slate-800 p-6 flex flex-col max-h-[80vh] animate-scale-in">
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-white/10 dark:bg-black/20 backdrop-blur-md animate-fade-in font-display">
+            <div className="bg-white/80 dark:bg-black/80 backdrop-blur-xl w-full max-w-sm rounded-[32px] shadow-2xl border border-white/20 dark:border-white/10 p-8 flex flex-col max-h-[70vh] animate-scale-in ring-1 ring-black/5 dark:ring-white/5">
 
                 {/* Header */}
-                <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-extrabold text-[#1E293B] dark:text-white tracking-tight">Select Folders</h3>
-                    <button onClick={onClose} className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">
+                <div className="flex items-center justify-between mb-8">
+                    <h3 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight">Folders</h3>
+                    <button onClick={onClose} className="w-10 h-10 rounded-full bg-slate-50 dark:bg-white/5 flex items-center justify-center text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all hover:scale-105 active:scale-95 cursor-pointer">
                         <span className="material-symbols-rounded text-xl">close</span>
                     </button>
                 </div>
 
                 {/* List */}
-                <div className="flex-1 overflow-y-auto min-h-0 space-y-1 mb-4 custom-scrollbar">
+                <div className="flex-1 overflow-y-auto min-h-0 space-y-3 mb-8 pr-2 custom-scrollbar">
                     {isLoading ? (
-                        <div className="text-center py-8 text-slate-400">Loading...</div>
+                        <div className="text-center py-8 text-slate-400 font-medium">Loading spaces...</div>
                     ) : folders.length === 0 ? (
-                        <div className="text-center py-8 text-slate-400 opacity-60 flex flex-col items-center">
-                            <span className="material-symbols-rounded text-4xl mb-2">folder_off</span>
-                            <span className="text-sm font-bold">No folders yet</span>
+                        <div className="text-center py-12 text-slate-400 opacity-60 flex flex-col items-center gap-3">
+                            <span className="material-symbols-rounded text-4xl">folder_off</span>
+                            <span className="text-sm font-bold">No folders found</span>
                         </div>
                     ) : (
                         folders.map(folder => (
                             <div
                                 key={'item-' + folder.id}
                                 onClick={() => handleToggle(folder.id)}
-                                className="flex items-center gap-3 p-3 rounded-xl cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors select-none group"
+                                className="flex items-center gap-4 p-2 rounded-xl cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 transition-all select-none group"
                             >
-                                <div className={`w-5 h-5 rounded flex items-center justify-center transition-all border ${selectedIds.includes(folder.id) ? 'bg-primary border-primary' : 'border-slate-300 dark:border-slate-600'}`}>
-                                    {selectedIds.includes(folder.id) && <span className="material-symbols-rounded text-white text-[14px] font-bold">check</span>}
+                                <div className={`w-6 h-6 rounded-[6px] flex items-center justify-center transition-all border-2 ${selectedIds.includes(folder.id) ? 'border-indigo-500 bg-transparent' : 'border-slate-200 dark:border-slate-700 group-hover:border-slate-300 dark:group-hover:border-slate-600'}`}>
+                                    {selectedIds.includes(folder.id) && <div className="w-3 h-3 bg-indigo-500 rounded-[3px] animate-scale-in" />}
                                 </div>
                                 <div className="flex flex-col flex-1">
-                                    <span className={`font-bold text-sm ${selectedIds.includes(folder.id) ? 'text-primary' : 'text-slate-700 dark:text-slate-200'}`}>
+                                    <span className={`font-bold text-[15px] ${selectedIds.includes(folder.id) ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-600 dark:text-slate-300'}`}>
                                         {folder.name}
                                     </span>
-                                    {folder.parentId && <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Subfolder</span>}
                                 </div>
                             </div>
                         ))
                     )}
                 </div>
 
-                {/* Create New */}
-                <div className="flex gap-2 mb-4">
-                    <input
-                        type="text"
-                        placeholder="Create new folder..."
-                        className="flex-1 h-10 px-3 bg-slate-50 dark:bg-slate-800 border-none rounded-xl text-sm font-medium focus:ring-2 focus:ring-primary/50 text-slate-700 dark:text-white"
-                        value={newFolderName}
-                        onChange={(e) => setNewFolderName(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleCreateFolder()}
-                    />
+                {/* Create New & Actions */}
+                <div className="flex flex-col gap-4">
+                    <div className="relative group">
+                        <input
+                            type="text"
+                            placeholder="New folder name..."
+                            className="w-full h-14 pl-5 pr-14 bg-slate-50 dark:bg-white/5 border-none rounded-2xl text-[15px] font-bold focus:ring-2 focus:ring-indigo-500/20 text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 transition-all"
+                            value={newFolderName}
+                            onChange={(e) => setNewFolderName(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleCreateFolder()}
+                        />
+                        <button
+                            onClick={handleCreateFolder}
+                            disabled={!newFolderName.trim()}
+                            className="absolute right-2 top-2 w-10 h-10 flex items-center justify-center bg-white dark:bg-white/10 text-slate-900 dark:text-white rounded-xl shadow-sm hover:scale-105 active:scale-95 disabled:opacity-0 disabled:scale-75 transition-all duration-200 cursor-pointer"
+                        >
+                            <span className="material-symbols-rounded text-xl">add</span>
+                        </button>
+                    </div>
+
                     <button
-                        onClick={handleCreateFolder}
-                        disabled={!newFolderName.trim()}
-                        className="w-10 h-10 flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl hover:bg-primary hover:text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        onClick={handleSave}
+                        className="w-full h-14 bg-indigo-600 text-white rounded-2xl font-black text-[15px] tracking-wide uppercase hover:bg-indigo-700 active:scale-95 transition-all shadow-xl shadow-indigo-500/20"
                     >
-                        <span className="material-symbols-rounded">add</span>
+                        Save Selection
                     </button>
                 </div>
-
-                {/* Actions */}
-                <button
-                    onClick={handleSave}
-                    className="w-full h-12 bg-primary text-white rounded-xl font-bold text-sm tracking-wide uppercase hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-primary/30"
-                >
-                    Done
-                </button>
             </div>
         </div>
     );
 };
+
