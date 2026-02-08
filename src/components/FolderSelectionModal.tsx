@@ -80,39 +80,23 @@ export const FolderSelectionModal: React.FC<FolderSelectionModalProps> = ({
                         </div>
                     ) : (
                         folders.map(folder => (
-                            <label key={folder.id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors group">
-                                <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${selectedIds.includes(folder.id)
-                                        ? 'bg-primary border-primary'
-                                        : 'border-slate-300 dark:border-slate-600'
-                                    }`}>
-                                    {selectedIds.includes(folder.id) && <span className="material-symbols-rounded text-white text-xs font-bold">check</span>}
+                            <div
+                                key={'item-' + folder.id}
+                                onClick={() => handleToggle(folder.id)}
+                                className="flex items-center gap-3 p-3 rounded-xl cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors select-none group"
+                            >
+                                <div className={`w-5 h-5 rounded flex items-center justify-center transition-all border ${selectedIds.includes(folder.id) ? 'bg-primary border-primary' : 'border-slate-300 dark:border-slate-600'}`}>
+                                    {selectedIds.includes(folder.id) && <span className="material-symbols-rounded text-white text-[14px] font-bold">check</span>}
                                 </div>
-                                <span className="material-symbols-rounded text-amber-400">folder</span>
-                                <span className="flex-1 font-bold text-slate-700 dark:text-slate-200 truncate">{folder.name}</span>
-                            </label>
-                            // Note: Add onChange to the label or a hidden input if needed, but the onClick on div wrapper handling event might be better or prevent default
-                        )
-                        ))}
-                    {/* Better implementation for list interaction */}
-                    {!isLoading && folders.map(folder => (
-                        <div
-                            key={'item-' + folder.id}
-                            onClick={() => handleToggle(folder.id)}
-                            className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors select-none"
-                        >
-                            <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${selectedIds.includes(folder.id)
-                                    ? 'bg-primary border-primary scale-100'
-                                    : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 scale-95'
-                                }`}>
-                                {selectedIds.includes(folder.id) && <span className="material-symbols-rounded text-white text-sm font-bold">check_small</span>}
+                                <div className="flex flex-col flex-1">
+                                    <span className={`font-bold text-sm ${selectedIds.includes(folder.id) ? 'text-primary' : 'text-slate-700 dark:text-slate-200'}`}>
+                                        {folder.name}
+                                    </span>
+                                    {folder.parentId && <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Subfolder</span>}
+                                </div>
                             </div>
-                            <span className="material-symbols-rounded text-[#FACC15]">folder</span>
-                            <div className="flex flex-col">
-                                <span className="font-bold text-slate-700 dark:text-slate-200 text-sm">{folder.name}</span>
-                                {folder.parentId && <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Subfolder</span>}
-                            </div>
-                        </div>
-                    )).filter((_, i) => i < folders.length)}
+                        ))
+                    )}
                 </div>
 
                 {/* Create New */}
