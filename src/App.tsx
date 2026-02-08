@@ -6,11 +6,11 @@ import { TagBar } from './components/TagBar';
 import { TagModal } from './components/TagModal';
 import { FoldersPanel } from './components/FoldersPanel';
 import { FolderSelectionModal } from './components/FolderSelectionModal';
-import { SettingsModal } from './components/SettingsModal';
+import { SettingsPage } from './components/SettingsPage';
 
 function App() {
   const [notes, setNotes] = useState<Note[]>([]);
-  const [view, setView] = useState<'list' | 'edit' | 'favorites' | 'folders'>('list');
+  const [view, setView] = useState<'list' | 'edit' | 'favorites' | 'folders' | 'settings'>('list');
   const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [currentDomain, setCurrentDomain] = useState<string>('');
   const [statusMsg, setStatusMsg] = useState('');
@@ -25,8 +25,7 @@ function App() {
   const [noteForFolderSelect, setNoteForFolderSelect] = useState<Note | null>(null);
   const [activeMenuNoteId, setActiveMenuNoteId] = useState<string | null>(null);
 
-  // Settings State
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [activeMenuNoteId, setActiveMenuNoteId] = useState<string | null>(null);
 
   useEffect(() => {
     loadNotes();
