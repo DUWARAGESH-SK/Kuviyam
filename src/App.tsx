@@ -268,6 +268,58 @@ function App() {
     );
   }
 
+  if (view === 'settings') {
+    return (
+      <div className="w-[450px] min-h-[884px] font-display bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-100 overflow-x-hidden relative flex flex-col">
+        <SettingsPage onDeleteAll={handleDeleteAll} />
+
+        <nav className="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl ios-tab-shadow px-6 pb-8 pt-4 z-50">
+          <div className="max-w-md mx-auto relative flex justify-between items-center">
+            <button
+              onClick={() => setView('list')}
+              className="flex flex-col items-center gap-1 group px-0 cursor-pointer transition-colors text-slate-400 dark:text-slate-500"
+            >
+              <span className="material-symbols-rounded">sticky_note_2</span>
+              <span className="text-[10px] font-bold tracking-wider uppercase">Notes</span>
+            </button>
+            <button
+              onClick={() => setView('favorites')}
+              className="flex flex-col items-center gap-1 group px-0 cursor-pointer transition-colors text-slate-400 dark:text-slate-500"
+            >
+              <span className="material-symbols-rounded">favorite</span>
+              <span className="text-[10px] font-bold tracking-wider uppercase">Favorites</span>
+            </button>
+            <div className="w-16"></div>
+            <button
+              onClick={() => setView('folders')}
+              className="flex flex-col items-center gap-1 group px-0 cursor-pointer transition-colors text-slate-400 dark:text-slate-500"
+            >
+              <span className="material-symbols-rounded">folder</span>
+              <span className="text-[10px] font-bold tracking-wider uppercase">Folders</span>
+            </button>
+            <button
+              onClick={() => setView('settings')}
+              className="flex flex-col items-center gap-1 group px-0 cursor-pointer transition-colors text-primary"
+            >
+              <span className="material-symbols-rounded">settings</span>
+              <span className="text-[10px] font-bold tracking-wider uppercase">Settings</span>
+            </button>
+            {/* Floating Action Button */}
+            <div className="absolute left-1/2 -translate-x-1/2 -top-12">
+              <button
+                onClick={handleCreateNote}
+                className="w-16 h-16 bg-primary rounded-full floating-action-button flex items-center justify-center text-slate-900 transform active:scale-90 transition-transform duration-100 border-4 border-white dark:border-slate-900 px-0 cursor-pointer"
+              >
+                <span className="material-symbols-rounded text-3xl font-bold">add</span>
+              </button>
+            </div>
+          </div>
+        </nav>
+      </div>
+    );
+  }
+
+
   return (
     <div className="w-[450px] min-h-[884px] font-display bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-100 overflow-x-hidden relative">
       <main className="relative z-10 px-6 pt-12 pb-32">
