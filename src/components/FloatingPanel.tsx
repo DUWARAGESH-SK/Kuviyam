@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { storage } from '../utils/storage';
+import { FolderSelectionModal } from './FolderSelectionModal';
 import type { PanelLayout, NoteDraft } from '../types';
 
 interface FloatingPanelProps {
@@ -25,6 +26,8 @@ const FloatingPanel: React.FC<FloatingPanelProps> = ({ onClose }) => {
     const [noteColor, setNoteColor] = useState('#8B5CF6'); // Purple default
     const [isDark, setIsDark] = useState(false);
     const [showStatus, setShowStatus] = useState<string | null>(null);
+    const [isFolderModalOpen, setIsFolderModalOpen] = useState(false);
+    const [selectedFolderIds, setSelectedFolderIds] = useState<string[]>([]);
 
     const [isDragging, setIsDragging] = useState(false);
     const [isResizing, setIsResizing] = useState(false);
@@ -46,6 +49,7 @@ const FloatingPanel: React.FC<FloatingPanelProps> = ({ onClose }) => {
                 setTagsInput(draft.tags ? draft.tags.join(', ') : '');
                 setIsPinned(draft.pinned || false);
                 setNoteColor(draft.color || '#8B5CF6');
+                setSelectedFolderIds(draft.folderIds || []);
             } else {
                 setTitle('RMD ENGINEERING COLLEGE');
                 setTagsInput('education, college');
@@ -79,6 +83,7 @@ const FloatingPanel: React.FC<FloatingPanelProps> = ({ onClose }) => {
             tags: tagsInput.split(',').map(t => t.trim()).filter(Boolean),
             pinned: isPinned,
             color: noteColor,
+            folderIds: selectedFolderIds,
             updatedAt: Date.now()
         };
         chrome.storage.local.set({ panelDraft: draft });
@@ -162,7 +167,8 @@ const FloatingPanel: React.FC<FloatingPanelProps> = ({ onClose }) => {
             pinned: isPinned,
             color: noteColor,
             domain: window.location.hostname,
-            url: window.location.href
+            url: window.location.href,
+            folderIds: selectedFolderIds
         };
         await storage.createNote(draft);
         displayStatus('Note Saved!');
@@ -278,13 +284,12 @@ const FloatingPanel: React.FC<FloatingPanelProps> = ({ onClose }) => {
                                 <span className={`material-symbols-rounded text-[28px] ${isPinned ? 'fill-current' : ''}`}>favorite</span>
                             </button>
                             <button
-                                onClick={() => {
-                                    const cols = ['#8B5CF6', '#F43F5E', '#10B981', '#F59E0B', '#3B82F6'];
-                                    setNoteColor(cols[(cols.indexOf(noteColor) + 1) % cols.length]);
-                                }}
-                                className="w-7 h-7 rounded-[8px] shadow-sm ring-2 ring-offset-2 ring-transparent hover:ring-slate-100 transition-all active:scale-90 cursor-pointer"
-                                style={{ backgroundColor: noteColor }}
-                            ></button>
+                                onClick={() => setIsFolderModalOpen(true)}
+                                className="text-slate-300 dark:text-slate-700 hover:text-primary transition-colors cursor-pointer"
+                                title="Add to Folder"
+                            >
+                                <span className={`material-symbols-rounded text-[24px] ${selectedFolderIds.length > 0 ? 'fill-current text-primary' : ''}`}>create_new_folder</span>
+                            </button>
                             <button className="text-slate-300 dark:text-slate-700 hover:text-slate-500 transition-colors cursor-pointer">
                                 <span className="material-symbols-rounded text-[32px]">more_horiz</span>
                             </button>
@@ -392,6 +397,16 @@ const FloatingPanel: React.FC<FloatingPanelProps> = ({ onClose }) => {
                     {showStatus}
                 </div>
             )}
+
+            <FolderSelectionModal
+                isOpen={isFolderModalOpen}
+                onClose={() => setIsFolderModalOpen(false)}
+                initialSelectedFolderIds={selectedFolderIds}
+                onSave={(ids) => {
+                    setSelectedFolderIds(ids);
+                    displayStatus('Folders selected');
+                }}
+            />
         </div>
 
     );
