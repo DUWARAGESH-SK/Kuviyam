@@ -475,14 +475,14 @@ function App() {
           <div className="w-16"></div>
           <button
             onClick={() => setView('folders')}
-            className={`flex flex-col items-center gap-1 group px-0 cursor-pointer transition-colors ${view === 'folders' ? 'text-primary' : 'text-slate-400 dark:text-slate-500'}`}
+            className="flex flex-col items-center gap-1 group px-0 cursor-pointer transition-colors text-slate-400 dark:text-slate-500"
           >
             <span className="material-symbols-rounded">folder</span>
             <span className="text-[10px] font-bold tracking-wider uppercase">Folders</span>
           </button>
           <button
             onClick={() => setView('settings')}
-            className={`flex flex-col items-center gap-1 group px-0 cursor-pointer transition-colors ${view === 'settings' ? 'text-primary' : 'text-slate-400 dark:text-slate-500'}`}
+            className="flex flex-col items-center gap-1 group px-0 cursor-pointer transition-colors text-slate-400 dark:text-slate-500"
           >
             <span className="material-symbols-rounded">settings</span>
             <span className="text-[10px] font-bold tracking-wider uppercase">Settings</span>
