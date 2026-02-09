@@ -172,6 +172,8 @@ const StickyNotes: React.FC<StickyNotesProps> = ({ onClose }) => {
                 zIndex: 2147483647,
                 backgroundColor: '#ffffff',
                 color: '#1e293b',
+                // EXPLICIT SYSTEM FONT STACK TO FIX GARBLED TEXT
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
             }}
             className="flex flex-col rounded-xl shadow-2xl border border-gray-200 font-sans select-none"
         >
