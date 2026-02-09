@@ -1,6 +1,6 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import FloatingPanel from './components/FloatingPanel';
+import StickyNotes from './components/StickyNotes';
 import { storage } from './utils/storage';
 import indexStyles from './index.css?inline';
 
@@ -51,7 +51,7 @@ async function mountPanel() {
     const reactRoot = createRoot(shadowRoot);
     reactRoot.render(
         <React.StrictMode>
-            <FloatingPanel onClose={() => {
+            <StickyNotes onClose={() => {
                 shadowRoot.style.display = 'none';
                 storage.getPanelLayout().then(layout => {
                     storage.savePanelLayout({ ...layout, isOpen: false });
