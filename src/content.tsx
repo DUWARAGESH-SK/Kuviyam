@@ -34,16 +34,13 @@ async function mountPanel() {
         style.textContent = indexStyles;
         shadow.appendChild(style);
 
-        // Inject Fonts & Icons
+        // Inject Fonts - Adding Inter as requested by StickyNotes.tsx font-sans
         const fontLink = document.createElement('link');
         fontLink.rel = 'stylesheet';
-        fontLink.href = 'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap';
+        fontLink.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap';
         shadow.appendChild(fontLink);
 
-        const iconLink = document.createElement('link');
-        iconLink.rel = 'stylesheet';
-        iconLink.href = 'https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200';
-        shadow.appendChild(iconLink);
+        // Removed Material Symbols as they are no longer used in StickyNotes
     } catch (e) {
         console.error("[Kuviyam] Style injection failed", e);
     }
