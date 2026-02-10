@@ -188,25 +188,83 @@ async function mountPanel() {
   shadowRoot.style.inset = '0';
   shadow.appendChild(shadowRoot);
 
-  // DIAGNOSTIC STYLE START
-  const testStyle = document.createElement('style');
-  testStyle.textContent = `
-      button {
-        background: red !important;
-        color: white !important;
-        padding: 10px !important;
-        border-radius: 5px !important;
-      }
-      div {
-        border: 1px solid blue !important;
-      }
-    `;
-  shadow.appendChild(testStyle);
-  // DIAGNOSTIC STYLE END
+  // Tailwind CSS CDN
+  const tailwindLink = document.createElement('link');
+  tailwindLink.rel = 'stylesheet';
+  tailwindLink.href = 'https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css';
+  shadow.appendChild(tailwindLink);
 
-  // Inject MINIMAL CSS
+  // User provided solution for Shadow DOM and positioning
   const style = document.createElement('style');
-  style.textContent = minimalCSS;
+  style.textContent = `
+    /* RESET for Shadow DOM */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    /* Force Material Icons to load */
+    @font-face {
+      font-family: 'Material Symbols Rounded';
+      font-style: normal;
+      font-weight: 100 700;
+      src: url(https://fonts.gstatic.com/s/materialsymbolsrounded/v168/sykg-zNym6YjUruM-QrEh7-nyTnjDwKNJ_190Fjzag.woff2) format('woff2');
+    }
+    
+    .material-symbols-rounded {
+      font-family: 'Material Symbols Rounded';
+      font-weight: normal;
+      font-style: normal;
+      font-size: 24px;
+      line-height: 1;
+      letter-spacing: normal;
+      text-transform: none;
+      display: inline-block;
+      white-space: nowrap;
+      word-wrap: normal;
+      direction: ltr;
+      -webkit-font-smoothing: antialiased;
+    }
+    
+    /* Ensure buttons are visible and stacked correctly */
+    button {
+      position: relative !important;
+      z-index: 10 !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      min-width: 40px !important;
+      min-height: 40px !important;
+    }
+    
+    /* Fix overlapping */
+    div, header, main, span, button {
+      position: relative !important;
+    }
+    
+    /* Specific fix for StickyNotes layout */
+    #kuviyam-panel-container > div {
+      position: fixed !important;
+      z-index: 2147483647 !important;
+      pointer-events: auto !important;
+    }
+    
+    /* Force visibility */
+    header {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      gap: 8px !important;
+    }
+    
+    /* Make sure icons display */
+    .material-symbols-rounded {
+      display: inline-block !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+    }
+  `;
   shadow.appendChild(style);
 
   // NO EXTERNAL FONTS - Using System Fonts defined in minimalCSS
