@@ -1,8 +1,8 @@
 {
     "manifest_version": 3,
     "name": "Kuviyam",
-    "version": "1.0.3",
-    "description": "A lightweight, privacy-first browser-based note-taking extension.",
+    "version": "1.1.0",
+    "description": "Kuviyam — A lightweight, privacy-first note-taking extension with a premium sticky note UI.",
     "permissions": [
         "storage",
         "activeTab",
