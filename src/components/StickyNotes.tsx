@@ -41,6 +41,38 @@ const CheckIcon = () => (
     </svg>
 );
 
+const StarIcon = ({ filled }: { filled?: boolean }) => (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+    </svg>
+);
+
+const FolderIcon = () => (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+    </svg>
+);
+
+const MoonIcon = () => (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+    </svg>
+);
+
+const SunIcon = () => (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="5" />
+        <line x1="12" y1="1" x2="12" y2="3" />
+        <line x1="12" y1="21" x2="12" y2="23" />
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+        <line x1="1" y1="12" x2="3" y2="12" />
+        <line x1="21" y1="12" x2="23" y2="12" />
+        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+    </svg>
+);
+
 const StickyNotes: React.FC<StickyNotesProps> = ({ onClose }) => {
     // --- STATE ---
     const [position, setPosition] = useState({ x: 60, y: 60 });
@@ -59,6 +91,10 @@ const StickyNotes: React.FC<StickyNotesProps> = ({ onClose }) => {
     const [tagInput, setTagInput] = useState('');
     const [isSaved, setIsSaved] = useState(true);
     const [showSavedToast, setShowSavedToast] = useState(false);
+    const [isDarkMode, setIsDarkMode] = useState(true);
+    const [isPinned, setIsPinned] = useState(false);
+    const [folderIds, setFolderIds] = useState<string[]>([]);
+    const [isFolderModalOpen, setIsFolderModalOpen] = useState(false);
 
     // Hover states
     const [hoverClose, setHoverClose] = useState(false);
@@ -66,9 +102,19 @@ const StickyNotes: React.FC<StickyNotesProps> = ({ onClose }) => {
     const [hoverTagAdd, setHoverTagAdd] = useState(false);
     const [focusTitle, setFocusTitle] = useState(false);
     const [focusContent, setFocusContent] = useState(false);
+    const [hoverTheme, setHoverTheme] = useState(false);
+    const [hoverPin, setHoverPin] = useState(false);
+    const [hoverFolder, setHoverFolder] = useState(false);
 
     const containerRef = useRef<HTMLDivElement>(null);
     const titleRef = useRef<HTMLInputElement>(null);
+
+    const [folders, setFolders] = useState<{ id: string, name: string }[]>([]);
+    useEffect(() => {
+        if (isFolderModalOpen) {
+            storage.getFolders().then(f => setFolders(f));
+        }
+    }, [isFolderModalOpen]);
 
     // --- LOAD SAVED DATA ---
     useEffect(() => {
@@ -85,6 +131,8 @@ const StickyNotes: React.FC<StickyNotesProps> = ({ onClose }) => {
                 setTitle(draft.title || '');
                 setContent(draft.content || '');
                 setTags(draft.tags || []);
+                setIsPinned(draft.pinned || false);
+                setFolderIds(draft.folderIds || []);
             }
         });
         setTimeout(() => titleRef.current?.focus(), 100);
@@ -94,11 +142,11 @@ const StickyNotes: React.FC<StickyNotesProps> = ({ onClose }) => {
     useEffect(() => {
         const timer = setTimeout(() => {
             if (!isSaved) {
-                chrome.storage.local.set({ panelDraft: { title, content, tags, updatedAt: Date.now() } });
+                chrome.storage.local.set({ panelDraft: { title, content, tags, pinned: isPinned, folderIds, updatedAt: Date.now() } });
             }
         }, 800);
         return () => clearTimeout(timer);
-    }, [title, content, tags, isSaved]);
+    }, [title, content, tags, isPinned, folderIds, isSaved]);
 
     // --- FORMATTED DATE ---
     const formattedDate = new Date().toLocaleDateString('en-GB', {
@@ -188,19 +236,21 @@ const StickyNotes: React.FC<StickyNotesProps> = ({ onClose }) => {
             title: title.trim() || 'Untitled',
             content,
             tags,
-            pinned: false,
+            pinned: isPinned,
             domain,
             url: (() => { try { return window.location.href; } catch { return ''; } })(),
             favicon: `https://www.google.com/s2/favicons?domain=${domain}&sz=32`,
-            folderIds: []
+            folderIds: folderIds
         };
         await storage.createNote(newNote);
-        chrome.storage.local.set({ panelDraft: { title: '', content: '', tags: [], updatedAt: Date.now() } });
+        chrome.storage.local.set({ panelDraft: { title: '', content: '', tags: [], pinned: false, folderIds: [], updatedAt: Date.now() } });
         setIsSaved(true);
         setShowSavedToast(true);
         setTitle('');
         setContent('');
         setTags([]);
+        setIsPinned(false);
+        setFolderIds([]);
         setTimeout(() => setShowSavedToast(false), 2500);
     };
 
@@ -243,9 +293,9 @@ const StickyNotes: React.FC<StickyNotesProps> = ({ onClose }) => {
             borderRadius: '16px',
             overflow: 'hidden',
             boxShadow: '0 32px 64px -12px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.08)',
-            background: 'linear-gradient(145deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+            background: isDarkMode ? 'linear-gradient(145deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)' : 'linear-gradient(145deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%)',
             fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif',
-            color: '#e2e8f0',
+            color: isDarkMode ? '#e2e8f0' : '#1e293b',
             cursor: isDragging ? 'grabbing' : 'default',
             userSelect: isDragging ? 'none' as const : 'text' as const,
         },
@@ -262,8 +312,8 @@ const StickyNotes: React.FC<StickyNotesProps> = ({ onClose }) => {
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: '14px 18px',
-            background: 'rgba(255,255,255,0.04)',
-            borderBottom: '1px solid rgba(255,255,255,0.07)',
+            background: isDarkMode ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)',
+            borderBottom: isDarkMode ? '1px solid rgba(255,255,255,0.07)' : '1px solid rgba(0,0,0,0.05)',
             cursor: 'grab',
             flexShrink: 0,
             gap: '12px',
@@ -299,7 +349,7 @@ const StickyNotes: React.FC<StickyNotesProps> = ({ onClose }) => {
         headerTitle: {
             fontSize: '13px',
             fontWeight: '600',
-            color: '#94a3b8',
+            color: isDarkMode ? '#94a3b8' : '#475569',
             letterSpacing: '0.08em',
             textTransform: 'uppercase' as const,
             whiteSpace: 'nowrap' as const,
@@ -336,6 +386,23 @@ const StickyNotes: React.FC<StickyNotesProps> = ({ onClose }) => {
             minHeight: 0,
         },
 
+        iconBtn: (isHovered: boolean) => ({
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '30px',
+            height: '30px',
+            borderRadius: '8px',
+            border: 'none',
+            background: isHovered ? (isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)') : 'transparent',
+            color: isHovered ? (isDarkMode ? '#fff' : '#000') : (isDarkMode ? '#cbd5e1' : '#475569'),
+            cursor: 'pointer',
+            transition: 'all 0.15s ease',
+            flexShrink: 0,
+            padding: 0,
+            position: 'relative' as const,
+        }),
+
         closeBtn: {
             display: 'flex',
             alignItems: 'center',
@@ -345,7 +412,7 @@ const StickyNotes: React.FC<StickyNotesProps> = ({ onClose }) => {
             borderRadius: '8px',
             border: 'none',
             background: hoverClose ? 'rgba(239,68,68,0.15)' : 'transparent',
-            color: hoverClose ? '#f87171' : '#64748b',
+            color: hoverClose ? '#f87171' : (isDarkMode ? '#64748b' : '#94a3b8'),
             cursor: 'pointer',
             transition: 'all 0.15s ease',
             flexShrink: 0,
@@ -415,7 +482,7 @@ const StickyNotes: React.FC<StickyNotesProps> = ({ onClose }) => {
             outline: 'none',
             fontSize: '22px',
             fontWeight: '700',
-            color: focusTitle ? '#f1f5f9' : '#e2e8f0',
+            color: focusTitle ? (isDarkMode ? '#f1f5f9' : '#0f172a') : (isDarkMode ? '#e2e8f0' : '#334155'),
             letterSpacing: '-0.3px',
             lineHeight: '1.3',
             padding: '0',
@@ -429,7 +496,7 @@ const StickyNotes: React.FC<StickyNotesProps> = ({ onClose }) => {
             height: '1px',
             background: focusTitle
                 ? 'linear-gradient(90deg, #6366f1, transparent)'
-                : 'rgba(255,255,255,0.06)',
+                : (isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'),
             marginBottom: '16px',
             transition: 'background 0.3s',
             borderRadius: '1px',
@@ -504,13 +571,13 @@ const StickyNotes: React.FC<StickyNotesProps> = ({ onClose }) => {
         textarea: {
             flex: 1,
             width: '100%',
-            background: focusContent ? 'rgba(255,255,255,0.03)' : 'transparent',
-            border: focusContent ? '1px solid rgba(99,102,241,0.25)' : '1px solid rgba(255,255,255,0.05)',
+            background: focusContent ? (isDarkMode ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)') : 'transparent',
+            border: focusContent ? '1px solid rgba(99,102,241,0.25)' : (isDarkMode ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(0,0,0,0.05)'),
             borderRadius: '10px',
             outline: 'none',
             fontSize: '14px',
             lineHeight: '1.7',
-            color: '#cbd5e1',
+            color: isDarkMode ? '#cbd5e1' : '#334155',
             padding: '12px 14px',
             resize: 'none' as const,
             minHeight: '120px',
@@ -601,6 +668,32 @@ const StickyNotes: React.FC<StickyNotesProps> = ({ onClose }) => {
             opacity: 0.3,
             pointerEvents: 'none' as const,
         },
+
+        folderPicker: {
+            position: 'absolute' as const,
+            top: '55px',
+            right: '20px',
+            width: '200px',
+            background: isDarkMode ? '#1e293b' : '#fff',
+            border: isDarkMode ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.1)',
+            borderRadius: '12px',
+            padding: '8px',
+            boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+            zIndex: 100,
+            display: isFolderModalOpen ? 'block' : 'none',
+        },
+        folderItem: (selected: boolean) => ({
+            padding: '8px',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            background: selected ? 'rgba(99,102,241,0.1)' : 'transparent',
+            color: selected ? '#818cf8' : (isDarkMode ? '#e2e8f0' : '#1e293b'),
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            fontSize: '13px',
+            fontWeight: selected ? '600' : '400',
+        }),
     };
 
     return (
@@ -623,7 +716,7 @@ const StickyNotes: React.FC<StickyNotesProps> = ({ onClose }) => {
                     <div style={S.logo}>
                         <span style={S.logoText}>K</span>
                     </div>
-                    <span style={S.headerTitle}>New Note</span>
+                    <span style={S.headerTitle}>Floating Panel</span>
                 </div>
                 <div style={S.headerActions}>
                     {!isSaved && (
@@ -631,6 +724,37 @@ const StickyNotes: React.FC<StickyNotesProps> = ({ onClose }) => {
                             Unsaved…
                         </span>
                     )}
+                    <button
+                        onClick={() => setIsDarkMode(!isDarkMode)}
+                        style={S.iconBtn(hoverTheme)}
+                        onMouseEnter={() => setHoverTheme(true)}
+                        onMouseLeave={() => setHoverTheme(false)}
+                        title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+                    >
+                        {isDarkMode ? <SunIcon /> : <MoonIcon />}
+                    </button>
+                    <button
+                        onClick={() => { setIsPinned(!isPinned); setIsSaved(false); }}
+                        style={{ ...S.iconBtn(hoverPin), ...(isPinned ? { color: '#eab308' } : {}) }}
+                        onMouseEnter={() => setHoverPin(true)}
+                        onMouseLeave={() => setHoverPin(false)}
+                        title={isPinned ? "Unpin Note" : "Pin Note"}
+                    >
+                        <StarIcon filled={isPinned} />
+                    </button>
+                    <button
+                        onClick={() => setIsFolderModalOpen(!isFolderModalOpen)}
+                        style={{ ...S.iconBtn(hoverFolder), ...(folderIds.length > 0 ? { color: '#818cf8' } : {}) }}
+                        onMouseEnter={() => setHoverFolder(true)}
+                        onMouseLeave={() => setHoverFolder(false)}
+                        title="Folders"
+                    >
+                        <FolderIcon />
+                        {folderIds.length > 0 && (
+                            <span style={{ position: 'absolute', top: '2px', right: '2px', width: '6px', height: '6px', background: '#818cf8', borderRadius: '50%' }} />
+                        )}
+                    </button>
+                    <div style={{ width: '1px', height: '16px', background: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)', margin: '0 4px' }} />
                     <button
                         onClick={handleSave}
                         style={S.saveBtn}
@@ -651,6 +775,30 @@ const StickyNotes: React.FC<StickyNotesProps> = ({ onClose }) => {
                     </button>
                 </div>
             </div>
+
+            {/* Folder Dropdown */}
+            {isFolderModalOpen && (
+                <div style={S.folderPicker}>
+                    <div style={{ padding: '4px', fontSize: '11px', fontWeight: 'bold', color: '#94a3b8', marginBottom: '4px' }}>SELECT FOLDERS</div>
+                    {folders.length === 0 ? (
+                        <div style={{ padding: '8px', fontSize: '12px', color: '#64748b' }}>No folders found</div>
+                    ) : (
+                        folders.map(f => (
+                            <div
+                                key={f.id}
+                                style={S.folderItem(folderIds.includes(f.id))}
+                                onClick={() => {
+                                    setFolderIds(prev => prev.includes(f.id) ? prev.filter(id => id !== f.id) : [...prev, f.id]);
+                                    setIsSaved(false);
+                                }}
+                            >
+                                <FolderIcon />
+                                {f.name}
+                            </div>
+                        ))
+                    )}
+                </div>
+            )}
 
             {/* Body */}
             <div style={S.body}>
