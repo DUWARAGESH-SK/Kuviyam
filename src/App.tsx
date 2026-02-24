@@ -79,7 +79,7 @@ function App() {
         try {
           await chrome.scripting.executeScript({
             target: { tabId: tabId },
-            files: ['src/content.js']
+            files: ['src/content.tsx']
           });
 
           setTimeout(async () => {
