@@ -41,9 +41,9 @@ const CheckIcon = () => (
     </svg>
 );
 
-const StarIcon = ({ filled }: { filled?: boolean }) => (
+const HeartIcon = ({ filled }: { filled?: boolean }) => (
     <svg width="15" height="15" viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
     </svg>
 );
 
@@ -95,6 +95,7 @@ const StickyNotes: React.FC<StickyNotesProps> = ({ onClose }) => {
     const [isPinned, setIsPinned] = useState(false);
     const [folderIds, setFolderIds] = useState<string[]>([]);
     const [isFolderModalOpen, setIsFolderModalOpen] = useState(false);
+    const [newFolderName, setNewFolderName] = useState('');
 
     // Hover states
     const [hoverClose, setHoverClose] = useState(false);
@@ -193,14 +194,14 @@ const StickyNotes: React.FC<StickyNotesProps> = ({ onClose }) => {
                 let newX = resizeStart.posX;
                 let newY = resizeStart.posY;
 
-                if (resizeDir.includes('e')) newW = Math.max(340, resizeStart.width + dx);
-                if (resizeDir.includes('s')) newH = Math.max(360, resizeStart.height + dy);
+                if (resizeDir.includes('e')) newW = Math.max(260, resizeStart.width + dx);
+                if (resizeDir.includes('s')) newH = Math.max(300, resizeStart.height + dy);
                 if (resizeDir.includes('w')) {
-                    newW = Math.max(340, resizeStart.width - dx);
+                    newW = Math.max(260, resizeStart.width - dx);
                     newX = resizeStart.posX + (resizeStart.width - newW);
                 }
                 if (resizeDir.includes('n')) {
-                    newH = Math.max(360, resizeStart.height - dy);
+                    newH = Math.max(300, resizeStart.height - dy);
                     newY = resizeStart.posY + (resizeStart.height - newH);
                 }
                 setSize({ width: newW, height: newH });
@@ -285,8 +286,8 @@ const StickyNotes: React.FC<StickyNotesProps> = ({ onClose }) => {
             top: `${position.y}px`,
             width: `${size.width}px`,
             height: `${size.height}px`,
-            minWidth: '340px',
-            minHeight: '360px',
+            minWidth: '260px',
+            minHeight: '300px',
             zIndex: 2147483647,
             display: 'flex',
             flexDirection: 'column' as const,
@@ -353,12 +354,14 @@ const StickyNotes: React.FC<StickyNotesProps> = ({ onClose }) => {
             letterSpacing: '0.08em',
             textTransform: 'uppercase' as const,
             whiteSpace: 'nowrap' as const,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
         },
 
         headerActions: {
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
+            gap: '4px',
             flexShrink: 0,
         },
 
@@ -735,12 +738,12 @@ const StickyNotes: React.FC<StickyNotesProps> = ({ onClose }) => {
                     </button>
                     <button
                         onClick={() => { setIsPinned(!isPinned); setIsSaved(false); }}
-                        style={{ ...S.iconBtn(hoverPin), ...(isPinned ? { color: '#eab308' } : {}) }}
+                        style={{ ...S.iconBtn(hoverPin), ...(isPinned ? { color: '#ef4444' } : {}) }}
                         onMouseEnter={() => setHoverPin(true)}
                         onMouseLeave={() => setHoverPin(false)}
                         title={isPinned ? "Unpin Note" : "Pin Note"}
                     >
-                        <StarIcon filled={isPinned} />
+                        <HeartIcon filled={isPinned} />
                     </button>
                     <button
                         onClick={() => setIsFolderModalOpen(!isFolderModalOpen)}
@@ -797,6 +800,50 @@ const StickyNotes: React.FC<StickyNotesProps> = ({ onClose }) => {
                             </div>
                         ))
                     )}
+                    <div style={{ padding: '8px 4px 4px 4px', borderTop: isDarkMode ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.1)', marginTop: '4px' }}>
+                        <form onSubmit={async (e) => {
+                            e.preventDefault();
+                            if (newFolderName.trim()) {
+                                await storage.createFolder(newFolderName.trim());
+                                const fs = await storage.getFolders();
+                                setFolders(fs);
+                                setNewFolderName('');
+                            }
+                        }} style={{ display: 'flex', gap: '4px' }}>
+                            <input
+                                type="text"
+                                value={newFolderName}
+                                onChange={(e) => setNewFolderName(e.target.value)}
+                                placeholder="New folder..."
+                                style={{
+                                    flex: 1,
+                                    background: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
+                                    border: 'none',
+                                    borderRadius: '6px',
+                                    padding: '6px 8px',
+                                    color: isDarkMode ? '#e2e8f0' : '#1e293b',
+                                    fontSize: '12px',
+                                    outline: 'none',
+                                    minWidth: 0
+                                }}
+                            />
+                            <button
+                                type="submit"
+                                style={{
+                                    background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                                    color: '#fff',
+                                    border: 'none',
+                                    borderRadius: '6px',
+                                    padding: '0 10px',
+                                    fontSize: '12px',
+                                    fontWeight: '600',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                Add
+                            </button>
+                        </form>
+                    </div>
                 </div>
             )}
 
