@@ -76,9 +76,10 @@ function App() {
       try {
         await chrome.tabs.sendMessage(tabId, { type: "KUV_OPEN_PANEL" });
         window.close();
-      } catch (err) {
-        setStatusMsg("Refresh this page first! (F5)");
-        setTimeout(() => setStatusMsg(""), 3000);
+      } catch (err: any) {
+        const msg = err?.message || String(err);
+        setStatusMsg("Edge Err: " + msg.substring(0, 30));
+        setTimeout(() => setStatusMsg(""), 4000);
       }
 
     } catch (e) {
