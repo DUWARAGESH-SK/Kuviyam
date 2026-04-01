@@ -1,8 +1,8 @@
 {
     "manifest_version": 3,
-    "name": "Kuviyam",
+    "name": "Kuviyam Notes",
     "version": "1.1.0",
-    "description": "Kuviyam — A lightweight, privacy-first note-taking extension with a premium sticky note UI.",
+    "description": "Kuviyam Notes— A lightweight, privacy-first note-taking extension with sticky note UI.",
     "permissions": [
         "storage",
         "activeTab",
@@ -16,8 +16,30 @@
     ],
     "action": {
         "default_popup": "index.html",
-        "default_title": "Kuviyam"
+        "default_title": "Kuviyam Notes",
+        "default_icon": {
+            "16": "logo.png",
+            "32": "logo.png",
+            "48": "logo.png",
+            "128": "logo.png"
+        }
     },
+    "icons": {
+        "16": "logo.png",
+        "32": "logo.png",
+        "48": "logo.png",
+        "128": "logo.png"
+    },
+    "web_accessible_resources": [
+        {
+            "resources": [
+                "logo.png"
+            ],
+            "matches": [
+                "<all_urls>"
+            ]
+        }
+    ],
     "background": {
         "service_worker": "src/background.ts",
         "type": "module"
