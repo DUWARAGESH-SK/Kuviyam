@@ -6,6 +6,8 @@ import { storage } from './utils/storage';
 const id = 'kuviyam-root';
 let panelMounted = false;
 
+console.log("[Kuviyam] Content script loaded successfully. Listening for commands!");
+
 // MINIMAL CSS - Tailwind essentials with SYSTEM FONTS
 const minimalCSS = `
   /* Tailwind base styles */
@@ -273,7 +275,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }
       }
     }
-    sendResponse({ success: true });
+    Promise.resolve().then(() => sendResponse({ success: true }));
   }
   return true; // Keeps the message channel open for the async response if needed
 });
