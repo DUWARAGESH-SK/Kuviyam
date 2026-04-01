@@ -321,11 +321,11 @@ function App() {
 
         {/* Header */}
         <header className="relative flex justify-between items-center mb-8 z-10 mt-2">
-          <div className="flex items-center gap-4">
-            <img src="/logo.png" alt="Kuviyam Logo" className="w-16 h-16 rounded-2xl shadow-md border border-slate-100 dark:border-slate-800 object-cover" />
-            <h1 className="text-5xl font-extrabold text-[#1E293B] dark:text-white tracking-tight title-embossed pt-1">Kuviyam</h1>
+          <div className="flex items-center gap-3">
+            <img src="/logo.png" alt="Kuviyam Logo" className="w-12 h-12 rounded-2xl shadow-md border border-slate-100 dark:border-slate-800 object-cover shrink-0" />
+            <h1 className="text-4xl font-extrabold text-[#1E293B] dark:text-white tracking-tight title-embossed pt-1 shrink-0">Kuviyam</h1>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 shrink-0">
             <button
               onClick={handleOpenPanel}
               className="w-11 h-11 rounded-full bg-white dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 active:scale-95 transition-transform px-0 cursor-pointer"
