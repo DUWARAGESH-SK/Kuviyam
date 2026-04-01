@@ -233,10 +233,16 @@ const StickyNotes: React.FC<StickyNotesProps> = ({ onClose }) => {
 
     // --- SAVE ---
     const handleSave = async () => {
+        let finalTags = [...tags];
+        const pendingTag = tagInput.trim().replace(/^#/, '');
+        if (pendingTag && !finalTags.includes(pendingTag)) {
+            finalTags.push(pendingTag);
+        }
+
         const newNote = {
             title: title.trim() || 'Untitled',
             content,
-            tags,
+            tags: finalTags,
             pinned: isPinned,
             domain,
             url: (() => { try { return window.location.href; } catch { return ''; } })(),
@@ -250,6 +256,7 @@ const StickyNotes: React.FC<StickyNotesProps> = ({ onClose }) => {
         setTitle('');
         setContent('');
         setTags([]);
+        setTagInput('');
         setIsPinned(false);
         setFolderIds([]);
         setTimeout(() => setShowSavedToast(false), 2500);
@@ -716,10 +723,8 @@ const StickyNotes: React.FC<StickyNotesProps> = ({ onClose }) => {
             {/* Header */}
             <div style={S.header} onMouseDown={handleDragStart}>
                 <div style={S.headerLeft}>
-                    <div style={S.logo}>
-                        <span style={S.logoText}>K</span>
-                    </div>
-                    <span style={S.headerTitle}>Floating Panel</span>
+                    <img src={chrome.runtime.getURL('logo.png')} alt="Kuviyam" style={{ width: '44px', height: '44px', borderRadius: '12px', flexShrink: 0, boxShadow: '0 4px 14px rgba(99,102,241,0.5)', border: '1px solid rgba(255,255,255,0.1)', objectFit: 'cover' }} />
+                    <span style={{...S.headerTitle, fontSize: '18px', paddingLeft: '4px'}}>Floating Panel</span>
                 </div>
                 <div style={S.headerActions}>
                     {!isSaved && (
