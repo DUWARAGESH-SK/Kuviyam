@@ -157,10 +157,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id as Tab)}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-bold text-sm ${activeTab === tab.id
-                                        ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/30'
-                                        : tab.danger
-                                            ? 'text-rose-500 hover:bg-rose-500/10'
-                                            : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white'
+                                    ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/30'
+                                    : tab.danger
+                                        ? 'text-rose-500 hover:bg-rose-500/10'
+                                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white'
                                     }`}
                             >
                                 <span className={`material-symbols-rounded text-[20px] ${tab.danger && activeTab !== tab.id ? 'text-rose-500' : ''}`}>{tab.icon}</span>
