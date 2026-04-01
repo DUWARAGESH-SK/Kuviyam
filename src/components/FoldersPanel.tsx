@@ -100,9 +100,12 @@ export function FoldersPanel({ onEditNote }: FoldersPanelProps) {
                                     <span className="material-symbols-rounded">arrow_back</span>
                                 </button>
                             )}
-                            <h1 className="text-3xl font-extrabold text-[#1E293B] dark:text-white tracking-tight title-embossed">
-                                {currentFolder ? currentFolder.name : 'Folders'}
-                            </h1>
+                            <div className="flex items-center gap-3">
+                                {!currentFolder && <img src="/logo.png" alt="Kuviyam" className="w-12 h-12 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 object-cover" />}
+                                <h1 className="text-3xl font-extrabold text-[#1E293B] dark:text-white tracking-tight title-embossed">
+                                    {currentFolder ? currentFolder.name : 'Folders'}
+                                </h1>
+                            </div>
                         </div>
                         <div className="flex gap-2">
                             {currentFolderId && (
