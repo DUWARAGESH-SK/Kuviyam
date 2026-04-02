@@ -21,6 +21,9 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ initialNote, onSave, onC
     const [isFolderModalOpen, setIsFolderModalOpen] = useState(false);
     const [selectedFolderIds, setSelectedFolderIds] = useState<string[]>([]);
     const [isFocusMode, setIsFocusMode] = useState(false);
+    const [linkedDomain, setLinkedDomain] = useState<string | null>(null);
+    const [linkedUrl, setLinkedUrl] = useState<string | null>(null);
+    const [linkedFavicon, setLinkedFavicon] = useState<string | null>(null);
 
     // Additional state for matching StickyNotes logic
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -32,6 +35,13 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ initialNote, onSave, onC
             setIsPinned(initialNote.pinned || false);
             setSelectedFolderIds(initialNote.folderIds || []);
             setTags(initialNote.tags || []);
+            setLinkedDomain(initialNote.domain || null);
+            setLinkedUrl(initialNote.url || null);
+            setLinkedFavicon(initialNote.favicon || null);
+        } else {
+            setLinkedDomain(window.location.hostname);
+            setLinkedUrl(window.location.href);
+            setLinkedFavicon(`https://www.google.com/s2/favicons?domain=${window.location.hostname}&sz=32`);
         }
     }, [initialNote]);
 
@@ -71,9 +81,9 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ initialNote, onSave, onC
             content,
             tags: finalTags,
             pinned: isPinned,
-            domain: initialNote?.domain || window.location.hostname,
-            url: initialNote?.url || window.location.href,
-            favicon: initialNote?.favicon,
+            domain: linkedDomain || undefined,
+            url: linkedUrl || undefined,
+            favicon: linkedFavicon || undefined,
             folderIds: selectedFolderIds
         };
         onSave(draft, initialNote?.id);
@@ -85,14 +95,11 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ initialNote, onSave, onC
         setTimeout(() => setShowStatus(null), 2000);
     };
 
-    // Date formatting matching StickyNotes
     const formattedDate = new Date().toLocaleDateString('en-GB', {
         weekday: 'long',
         day: 'numeric',
         month: 'long'
     }).toUpperCase().replace(/(\d+)/, '$1,');
-
-    const domain = initialNote?.domain || window.location.hostname || 'chat.deepseek.com';
 
     return (
         <div
@@ -154,11 +161,31 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ initialNote, onSave, onC
 
                     {/* Linked Domain Pill */}
                     <div className="mb-12">
-                        <div className="inline-flex items-center gap-3 px-5 py-2.5 bg-[#EEF2FF] dark:bg-indigo-500/5 border border-[#E0E7FF] dark:border-indigo-500/10 rounded-2xl text-[#4F46E5] dark:text-indigo-400 font-bold text-[14px] flex-shrink-0">
-                            <span className="material-symbols-rounded text-[20px] flex-shrink-0">language</span>
-                            <span className="whitespace-nowrap">Linked to {domain}</span>
-                            <span className="material-symbols-rounded text-[18px] ml-1 opacity-50 flex-shrink-0">open_in_new</span>
-                        </div>
+                        {linkedDomain ? (
+                            <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#EEF2FF] dark:bg-indigo-500/5 border border-[#E0E7FF] dark:border-indigo-500/10 rounded-2xl text-[#4F46E5] dark:text-indigo-400 font-bold text-[14px] flex-shrink-0">
+                                <span className="material-symbols-rounded text-[20px] flex-shrink-0">language</span>
+                                <span className="whitespace-nowrap">Linked to {linkedDomain}</span>
+                                <a href={linkedUrl || '#'} target="_blank" rel="noopener noreferrer" className="material-symbols-rounded text-[18px] ml-1 opacity-50 hover:opacity-100 flex-shrink-0 hover:text-indigo-600 dark:hover:text-indigo-300 transition-colors">open_in_new</a>
+                                <div className="w-[1px] h-4 bg-indigo-200 dark:bg-indigo-500/30 mx-1"></div>
+                                <button 
+                                    onClick={() => { setLinkedDomain(null); setLinkedUrl(null); setLinkedFavicon(null); }}
+                                    className="material-symbols-rounded text-[18px] opacity-60 hover:opacity-100 flex-shrink-0 hover:text-red-500 transition-colors"
+                                    title="Unlink from website"
+                                >
+                                    link_off
+                                </button>
+                            </div>
+                        ) : (
+                            <button
+                                onClick={() => { setLinkedDomain(window.location.hostname); setLinkedUrl(window.location.href); setLinkedFavicon(`https://www.google.com/s2/favicons?domain=${window.location.hostname}&sz=32`); }}
+                                className="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl text-slate-500 dark:text-slate-400 font-bold text-[14px] flex-shrink-0 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
+                            >
+                                <span className="material-symbols-rounded text-[20px] flex-shrink-0">link_off</span>
+                                <span className="whitespace-nowrap">Not linked to a site</span>
+                                <div className="w-[1px] h-4 bg-slate-200 dark:bg-white/10 mx-1"></div>
+                                <span className="text-xs font-bold text-indigo-500 dark:text-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-300">Link to current site</span>
+                            </button>
+                        )}
                     </div>
 
                     {/* Primary Title Editor (Big Text) */}
