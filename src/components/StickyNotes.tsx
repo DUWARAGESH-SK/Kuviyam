@@ -73,6 +73,21 @@ const SunIcon = () => (
     </svg>
 );
 
+const GlobalIcon = () => (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <line x1="2" y1="12" x2="22" y2="12" />
+        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+    </svg>
+);
+
+const LinkRouteIcon = () => (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+    </svg>
+);
+
 const StickyNotes: React.FC<StickyNotesProps> = ({ onClose }) => {
     // --- STATE ---
     const [position, setPosition] = useState({ x: 60, y: 60 });
@@ -93,6 +108,7 @@ const StickyNotes: React.FC<StickyNotesProps> = ({ onClose }) => {
     const [showSavedToast, setShowSavedToast] = useState(false);
     const [isDarkMode, setIsDarkMode] = useState(true);
     const [isPinned, setIsPinned] = useState(false);
+    const [stickMode, setStickMode] = useState<'global' | 'per-tab'>('global');
     const [folderIds, setFolderIds] = useState<string[]>([]);
     const [isFolderModalOpen, setIsFolderModalOpen] = useState(false);
     const [newFolderName, setNewFolderName] = useState('');
@@ -105,7 +121,14 @@ const StickyNotes: React.FC<StickyNotesProps> = ({ onClose }) => {
     const [focusContent, setFocusContent] = useState(false);
     const [hoverTheme, setHoverTheme] = useState(false);
     const [hoverPin, setHoverPin] = useState(false);
+    const [hoverGlobal, setHoverGlobal] = useState(false);
     const [hoverFolder, setHoverFolder] = useState(false);
+    const [hoverLinkedSites, setHoverLinkedSites] = useState(false);
+
+    // Travel history & linked sites (global mode only)
+    const [travelHistory, setTravelHistory] = useState<string[]>([]);
+    const [allowedDomains, setAllowedDomains] = useState<string[]>([]);
+    const [isLinkedSitesOpen, setIsLinkedSitesOpen] = useState(false);
 
     const containerRef = useRef<HTMLDivElement>(null);
     const titleRef = useRef<HTMLInputElement>(null);
@@ -117,6 +140,8 @@ const StickyNotes: React.FC<StickyNotesProps> = ({ onClose }) => {
         }
     }, [isFolderModalOpen]);
 
+    const draftTimestamp = useRef(0);
+
     // --- LOAD SAVED DATA ---
     useEffect(() => {
         storage.getPanelLayout().then((l) => {
@@ -126,28 +151,97 @@ const StickyNotes: React.FC<StickyNotesProps> = ({ onClose }) => {
                 setSize({ width: l.width, height: l.height });
             }
         });
-        chrome.storage.local.get(['panelDraft']).then((res) => {
-            const draft = res.panelDraft as any;
-            if (draft) {
-                setTitle(draft.title || '');
-                setContent(draft.content || '');
-                setTags(draft.tags || []);
-                setIsPinned(draft.pinned || false);
-                setFolderIds(draft.folderIds || []);
+        
+        storage.getSettings().then(s => {
+            const mode = s.stickMode || 'global';
+            setStickMode(mode);
+            
+            if (mode === 'global') {
+                chrome.storage.local.get(['panelDraft']).then((res) => {
+                    const draft = res.panelDraft as any;
+                    if (draft) {
+                        setTitle(draft.title || '');
+                        setContent(draft.content || '');
+                        setTags(draft.tags || []);
+                        setIsPinned(draft.pinned || false);
+                        setFolderIds(draft.folderIds || []);
+                        draftTimestamp.current = draft.updatedAt || 0;
+                    }
+                });
+            } else {
+                // Load local session storage for per-tab drafts
+                try {
+                    const str = window.sessionStorage.getItem('kuviyam_tab_draft');
+                    if (str) {
+                        const draft = JSON.parse(str);
+                        setTitle(draft.title || '');
+                        setContent(draft.content || '');
+                        setTags(draft.tags || []);
+                        setIsPinned(draft.pinned || false);
+                        setFolderIds(draft.folderIds || []);
+                    }
+                } catch (e) {
+                    // ignore sessionStorage limits
+                }
             }
         });
+        storage.getTravelHistory().then(h => setTravelHistory(h));
+        storage.getAllowedDomains().then(d => setAllowedDomains(d));
         setTimeout(() => titleRef.current?.focus(), 100);
     }, []);
+
+    // Keep travelHistory & allowedDomains in sync with other tabs
+    useEffect(() => {
+        const handleLinkedSitesChange = (changes: any, areaName: string) => {
+            if (areaName !== 'local') return;
+            if (changes.travelHistory) setTravelHistory(changes.travelHistory.newValue || []);
+            if (changes.allowedDomains) setAllowedDomains(changes.allowedDomains.newValue || []);
+        };
+        chrome.storage.onChanged.addListener(handleLinkedSitesChange);
+        return () => chrome.storage.onChanged.removeListener(handleLinkedSitesChange);
+    }, []);
+
+    // --- REALTIME SYNC (GLOBAL MODE) ---
+    useEffect(() => {
+        const handleStorageChange = (changes: any, areaName: string) => {
+            if (areaName === 'local' && changes.panelDraft && stickMode === 'global') {
+                const newDraft = changes.panelDraft.newValue;
+                if (!newDraft) return;
+
+                // Sync incoming broadcast if it is newer than our absolute timestamp
+                if (newDraft.updatedAt && newDraft.updatedAt > draftTimestamp.current) {
+                    draftTimestamp.current = newDraft.updatedAt;
+                    setTitle(newDraft.title || '');
+                    setContent(newDraft.content || '');
+                    setTags(newDraft.tags || []);
+                    setIsPinned(newDraft.pinned || false);
+                    setFolderIds(newDraft.folderIds || []);
+                }
+            }
+        };
+
+        chrome.storage.onChanged.addListener(handleStorageChange);
+        return () => chrome.storage.onChanged.removeListener(handleStorageChange);
+    }, [stickMode]);
 
     // --- AUTO-SAVE DRAFT ---
     useEffect(() => {
         const timer = setTimeout(() => {
             if (!isSaved) {
-                chrome.storage.local.set({ panelDraft: { title, content, tags, pinned: isPinned, folderIds, updatedAt: Date.now() } });
+                const now = Date.now();
+                draftTimestamp.current = now; // prevent bouncing back our own update
+                
+                const draftObj = { title, content, tags, pinned: isPinned, folderIds, updatedAt: now };
+                
+                if (stickMode === 'global') {
+                    chrome.storage.local.set({ panelDraft: draftObj });
+                } else {
+                    try { window.sessionStorage.setItem('kuviyam_tab_draft', JSON.stringify(draftObj)); } catch (e) {}
+                }
             }
-        }, 800);
+        }, 300); // 300ms for swift cross-tab visibility
         return () => clearTimeout(timer);
-    }, [title, content, tags, isPinned, folderIds, isSaved]);
+    }, [title, content, tags, isPinned, folderIds, isSaved, stickMode]);
 
     // --- FORMATTED DATE ---
     const formattedDate = new Date().toLocaleDateString('en-GB', {
@@ -250,7 +344,11 @@ const StickyNotes: React.FC<StickyNotesProps> = ({ onClose }) => {
             folderIds: folderIds
         };
         await storage.createNote(newNote);
-        chrome.storage.local.set({ panelDraft: { title: '', content: '', tags: [], pinned: false, folderIds: [], updatedAt: Date.now() } });
+        if (stickMode === 'global') {
+            chrome.storage.local.set({ panelDraft: { title: '', content: '', tags: [], pinned: false, folderIds: [], updatedAt: Date.now() } });
+        } else {
+            try { window.sessionStorage.removeItem('kuviyam_tab_draft'); } catch (e) {}
+        }
         setIsSaved(true);
         setShowSavedToast(true);
         setTitle('');
@@ -481,7 +579,6 @@ const StickyNotes: React.FC<StickyNotesProps> = ({ onClose }) => {
             fontSize: '10px',
             fontWeight: '500',
             color: '#818cf8',
-            marginBottom: '18px',
             width: 'fit-content',
         },
 
@@ -742,6 +839,21 @@ const StickyNotes: React.FC<StickyNotesProps> = ({ onClose }) => {
                         {isDarkMode ? <SunIcon /> : <MoonIcon />}
                     </button>
                     <button
+                        onClick={async () => {
+                            const newMode = stickMode === 'global' ? 'per-tab' : 'global';
+                            setStickMode(newMode);
+                            await storage.saveSettings({ stickMode: newMode });
+                            // Trigger sync to all tabs manually by triggering an internal storage change if needed
+                            if (newMode === 'global') storage.savePanelLayout({...layout, isOpen: true});
+                        }}
+                        style={{ ...S.iconBtn(hoverGlobal), ...(stickMode === 'global' ? { color: '#0ea5e9' } : {}) }}
+                        onMouseEnter={() => setHoverGlobal(true)}
+                        onMouseLeave={() => setHoverGlobal(false)}
+                        title={stickMode === 'global' ? "Global Stick (Follows You Everywhere) — Click to isolate to this tab" : "Local Stick (Isolated to Tab) — Click to follow you everywhere"}
+                    >
+                        <GlobalIcon />
+                    </button>
+                    <button
                         onClick={() => { setIsPinned(!isPinned); setIsSaved(false); }}
                         style={{ ...S.iconBtn(hoverPin), ...(isPinned ? { color: '#ef4444' } : {}) }}
                         onMouseEnter={() => setHoverPin(true)}
@@ -762,6 +874,20 @@ const StickyNotes: React.FC<StickyNotesProps> = ({ onClose }) => {
                             <span style={{ position: 'absolute', top: '2px', right: '2px', width: '6px', height: '6px', background: '#818cf8', borderRadius: '50%' }} />
                         )}
                     </button>
+                    {stickMode === 'global' && (
+                        <button
+                            onClick={() => setIsLinkedSitesOpen(!isLinkedSitesOpen)}
+                            style={{ ...S.iconBtn(hoverLinkedSites), ...(allowedDomains.length > 0 ? { color: '#10b981' } : {}) }}
+                            onMouseEnter={() => setHoverLinkedSites(true)}
+                            onMouseLeave={() => setHoverLinkedSites(false)}
+                            title={`Linked Sites${allowedDomains.length > 0 ? ` (${allowedDomains.length} pinned)` : ''}`}
+                        >
+                            <LinkRouteIcon />
+                            {allowedDomains.length > 0 && (
+                                <span style={{ position: 'absolute', top: '2px', right: '2px', width: '6px', height: '6px', background: '#10b981', borderRadius: '50%' }} />
+                            )}
+                        </button>
+                    )}
                     <div style={{ width: '1px', height: '16px', background: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)', margin: '0 4px' }} />
                     <button
                         onClick={handleSave}
@@ -852,7 +978,92 @@ const StickyNotes: React.FC<StickyNotesProps> = ({ onClose }) => {
                 </div>
             )}
 
-            {/* Body */}
+            {/* Linked Sites Dropdown (Global mode only) */}
+            {isLinkedSitesOpen && stickMode === 'global' && (
+                <div style={{
+                    position: 'absolute', top: '68px', right: '16px',
+                    background: isDarkMode ? 'rgba(15,15,30,0.98)' : '#fff',
+                    border: isDarkMode ? '1px solid rgba(16,185,129,0.25)' : '1px solid rgba(16,185,129,0.35)',
+                    borderRadius: '12px',
+                    padding: '8px',
+                    boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
+                    zIndex: 101,
+                    minWidth: '200px',
+                    maxWidth: '260px',
+                }}>
+                    <div style={{ padding: '4px 4px 6px', fontSize: '10px', fontWeight: '700', color: '#10b981', letterSpacing: '0.08em', marginBottom: '4px', borderBottom: '1px solid rgba(16,185,129,0.15)' }}>
+                        🌐 LINKED SITES · TRAVEL HISTORY
+                    </div>
+                    {travelHistory.length === 0 ? (
+                        <div style={{ padding: '10px 4px', fontSize: '12px', color: '#64748b', textAlign: 'center' as const }}>
+                            No history yet. Start browsing!
+                        </div>
+                    ) : (
+                        travelHistory.map(domain => {
+                            const pinned = allowedDomains.includes(domain);
+                            return (
+                                <div
+                                    key={domain}
+                                    onClick={async () => {
+                                        const next = pinned
+                                            ? allowedDomains.filter(d => d !== domain)
+                                            : [...allowedDomains, domain];
+                                        setAllowedDomains(next);
+                                        await storage.saveAllowedDomains(next);
+                                    }}
+                                    style={{
+                                        display: 'flex', alignItems: 'center', gap: '8px',
+                                        padding: '7px 8px',
+                                        borderRadius: '7px',
+                                        cursor: 'pointer',
+                                        background: pinned ? 'rgba(16,185,129,0.12)' : 'transparent',
+                                        color: pinned ? '#10b981' : (isDarkMode ? '#e2e8f0' : '#1e293b'),
+                                        fontSize: '12px',
+                                        fontWeight: pinned ? '600' : '400',
+                                        transition: 'background 0.15s',
+                                        marginBottom: '2px',
+                                    }}
+                                >
+                                    <img
+                                        src={`https://www.google.com/s2/favicons?domain=${domain}&sz=16`}
+                                        width="14" height="14"
+                                        style={{ borderRadius: '3px', flexShrink: 0 }}
+                                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                    />
+                                    <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>{domain}</span>
+                                    <span style={{
+                                        width: '14px', height: '14px', borderRadius: '3px',
+                                        border: pinned ? '2px solid #10b981' : `2px solid ${isDarkMode ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'}`,
+                                        background: pinned ? '#10b981' : 'transparent',
+                                        flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    }}>
+                                        {pinned && <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}
+                                    </span>
+                                </div>
+                            );
+                        })
+                    )}
+                    {allowedDomains.length > 0 && (
+                        <div style={{ paddingTop: '6px', borderTop: '1px solid rgba(16,185,129,0.15)', marginTop: '4px' }}>
+                            <button
+                                onClick={async () => {
+                                    setAllowedDomains([]);
+                                    await storage.saveAllowedDomains([]);
+                                }}
+                                style={{
+                                    width: '100%', padding: '5px', fontSize: '11px', fontWeight: '600',
+                                    color: '#ef4444', cursor: 'pointer',
+                                    background: 'rgba(239,68,68,0.08)', border: 'none',
+                                    borderRadius: '6px',
+                                }}
+                            >
+                                Clear All Pinned Sites
+                            </button>
+                        </div>
+                    )}
+                </div>
+            )}
+
             <div style={S.body}>
                 <div style={S.scrollArea}>
 
@@ -860,9 +1071,56 @@ const StickyNotes: React.FC<StickyNotesProps> = ({ onClose }) => {
                     <div style={S.dateLine}>
                         <span style={S.dateText}>{formattedDate}</span>
                     </div>
-                    <div style={S.domainPill}>
-                        <LinkIcon />
-                        {domain}
+                    {/* Domain pills row — current site + any pinned linked sites */}
+                    <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: '6px', alignItems: 'center', marginBottom: '18px' }}>
+                        {/* Current site pill */}
+                        <div style={S.domainPill}>
+                            <LinkIcon />
+                            {domain}
+                        </div>
+
+                        {/* Pinned linked-site pills (global mode only, exclude current domain) */}
+                        {stickMode === 'global' && allowedDomains
+                            .filter(d => d !== domain)
+                            .map(d => (
+                                <div
+                                    key={d}
+                                    title={`Pinned — click to unpin ${d}`}
+                                    onClick={async () => {
+                                        const next = allowedDomains.filter(x => x !== d);
+                                        setAllowedDomains(next);
+                                        await storage.saveAllowedDomains(next);
+                                    }}
+                                    style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '5px',
+                                        padding: '3px 9px 3px 6px',
+                                        borderRadius: '999px',
+                                        fontSize: '11px',
+                                        fontWeight: '500',
+                                        cursor: 'pointer',
+                                        color: '#10b981',
+                                        background: 'rgba(16,185,129,0.1)',
+                                        border: '1px solid rgba(16,185,129,0.3)',
+                                        transition: 'background 0.15s',
+                                        userSelect: 'none' as const,
+                                    }}
+                                >
+                                    <img
+                                        src={`https://www.google.com/s2/favicons?domain=${d}&sz=14`}
+                                        width="12" height="12"
+                                        style={{ borderRadius: '2px', flexShrink: 0 }}
+                                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                    />
+                                    {d}
+                                    {/* small × to unpin */}
+                                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="3" style={{ marginLeft: '2px', opacity: 0.7 }}>
+                                        <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                                    </svg>
+                                </div>
+                            ))
+                        }
                     </div>
 
                     {/* Title */}
