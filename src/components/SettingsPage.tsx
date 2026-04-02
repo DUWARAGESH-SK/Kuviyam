@@ -1,15 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import JSZip from 'jszip';
 import { storage } from '../utils/storage';
 import type { Note, Folder, AppSettings } from '../types';
 
 interface SettingsPageProps {
     onDeleteAll?: () => void;
+    onNavigateToNotes?: (domain: string) => void;
 }
 
 type Tab = 'general' | 'download' | 'delete' | 'websites';
 
-export const SettingsPage: React.FC<SettingsPageProps> = ({ onDeleteAll }) => {
+export const SettingsPage: React.FC<SettingsPageProps> = ({ onDeleteAll, onNavigateToNotes }) => {
     const [activeTab, setActiveTab] = useState<Tab>('general');
     const [notes, setNotes] = useState<Note[]>([]);
     const [folders, setFolders] = useState<Folder[]>([]);
@@ -32,7 +33,11 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onDeleteAll }) => {
     const [showDeleteFilter, setShowDeleteFilter] = useState(false);
 
     // Website List State
-    const [linkedWebsites, setLinkedWebsites] = useState<{ domain: string, url: string, count: number, favicon?: string }[]>([]);
+    const [linkedWebsites, setLinkedWebsites] = useState<{ domain: string, url: string, count: number, favicon?: string, lastUsed: number }[]>([]);
+    const [websiteSort, setWebsiteSort] = useState<'recent' | 'oldest' | 'most-notes'>('recent');
+    const [websiteFilterUnit, setWebsiteFilterUnit] = useState<'days' | 'months' | 'years'>('days');
+    const [websiteFilterValue, setWebsiteFilterValue] = useState<number>(30);
+    const [showWebsiteSort, setShowWebsiteSort] = useState(false);
 
     useEffect(() => {
         loadData();
@@ -48,11 +53,12 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onDeleteAll }) => {
         setStickMode(settings.stickMode);
 
         // Process Websites
-        const sites = new Map<string, { domain: string, url: string, count: number, favicon?: string }>();
+        const sites = new Map<string, { domain: string, url: string, count: number, favicon?: string, lastUsed: number }>();
         allNotes.forEach(note => {
             if (note.url && note.domain) {
-                const existing = sites.get(note.domain) || { domain: note.domain, url: note.url, count: 0, favicon: note.favicon };
+                const existing = sites.get(note.domain) || { domain: note.domain, url: note.url, count: 0, favicon: note.favicon, lastUsed: 0 };
                 existing.count++;
+                existing.lastUsed = Math.max(existing.lastUsed, note.updatedAt);
                 sites.set(note.domain, existing);
             }
         });
@@ -218,6 +224,40 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onDeleteAll }) => {
         deleteFilter,
         selectedDeleteType
     );
+
+    const filteredWebsites = useMemo(() => {
+        const now = Date.now();
+        let cutoff = now;
+        if (websiteFilterUnit === 'days') cutoff -= websiteFilterValue * 24 * 60 * 60 * 1000;
+        else if (websiteFilterUnit === 'months') cutoff -= websiteFilterValue * 30 * 24 * 60 * 60 * 1000;
+        else if (websiteFilterUnit === 'years') cutoff -= websiteFilterValue * 365 * 24 * 60 * 60 * 1000;
+
+        let res = linkedWebsites.filter(site => site.lastUsed >= cutoff);
+
+        if (websiteSort === 'recent') res.sort((a, b) => b.lastUsed - a.lastUsed);
+        else if (websiteSort === 'oldest') res.sort((a, b) => a.lastUsed - b.lastUsed);
+        else if (websiteSort === 'most-notes') res.sort((a, b) => b.count - a.count);
+
+        return res;
+    }, [linkedWebsites, websiteSort, websiteFilterUnit, websiteFilterValue]);
+
+    const getRelativeTime = (timestamp: number) => {
+        const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
+        const diff = timestamp - Date.now();
+        const days = Math.round(diff / (1000 * 60 * 60 * 24));
+        if (Math.abs(days) < 1) {
+            const hours = Math.round(diff / (1000 * 60 * 60));
+            if (Math.abs(hours) < 1) {
+                const minutes = Math.round(diff / (1000 * 60));
+                return rtf.format(minutes, 'minute');
+            }
+            return rtf.format(hours, 'hour');
+        }
+        if (Math.abs(days) >= 30) {
+            return rtf.format(Math.round(days / 30), 'month');
+        }
+        return rtf.format(days, 'day');
+    };
 
     return (
         <div className="w-full h-full flex flex-col bg-white dark:bg-background-dark text-slate-800 dark:text-slate-100 font-display">
@@ -567,47 +607,108 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onDeleteAll }) => {
 
                     {/* 4. WEBSITES TAB */}
                     {activeTab === 'websites' && (
-                        <div className="space-y-4">
-                            <div className="flex items-center gap-3 mb-2">
-                                <div className="w-10 h-10 rounded-xl bg-teal-500/10 flex items-center justify-center shrink-0">
-                                    <span className="material-symbols-rounded text-xl text-teal-500">language</span>
+                        <div className="space-y-4 h-full flex flex-col">
+                            <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-teal-500/10 flex items-center justify-center shrink-0">
+                                        <span className="material-symbols-rounded text-xl text-teal-500">language</span>
+                                    </div>
+                                    <h3 className="text-xl font-black text-slate-800 dark:text-white">Linked Websites</h3>
                                 </div>
-                                <h3 className="text-xl font-black text-slate-800 dark:text-white">Linked Websites</h3>
+                                
+                                <div className="relative">
+                                    <button 
+                                        onClick={() => setShowWebsiteSort(!showWebsiteSort)}
+                                        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors text-sm font-bold text-slate-600 dark:text-slate-300"
+                                    >
+                                        <span className="material-symbols-rounded text-[18px]">sort</span>
+                                        {websiteSort === 'recent' ? 'Recent' : websiteSort === 'oldest' ? 'Oldest' : 'Most Notes'}
+                                    </button>
+                                    {showWebsiteSort && (
+                                        <div className="absolute right-0 top-full mt-2 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-white/10 p-2 w-40 z-50">
+                                            <button onClick={() => { setWebsiteSort('recent'); setShowWebsiteSort(false); }} className={`w-full text-left px-3 py-2 rounded-lg text-sm font-bold transition-colors ${websiteSort === 'recent' ? 'bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400' : 'hover:bg-slate-50 dark:hover:bg-white/5'}`}>Recent</button>
+                                            <button onClick={() => { setWebsiteSort('oldest'); setShowWebsiteSort(false); }} className={`w-full text-left px-3 py-2 rounded-lg text-sm font-bold transition-colors ${websiteSort === 'oldest' ? 'bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400' : 'hover:bg-slate-50 dark:hover:bg-white/5'}`}>Oldest</button>
+                                            <button onClick={() => { setWebsiteSort('most-notes'); setShowWebsiteSort(false); }} className={`w-full text-left px-3 py-2 rounded-lg text-sm font-bold transition-colors ${websiteSort === 'most-notes' ? 'bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400' : 'hover:bg-slate-50 dark:hover:bg-white/5'}`}>Most Notes</button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                            
+                            {/* Filter Control */}
+                            <div className="flex items-center gap-2 p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10">
+                                <span className="text-sm font-bold text-slate-500 dark:text-slate-400 shrink-0">Filter:</span>
+                                <input 
+                                    type="number" 
+                                    min="1" 
+                                    max="99"
+                                    value={websiteFilterValue || ''} 
+                                    onChange={(e) => setWebsiteFilterValue(parseInt(e.target.value) || 0)}
+                                    className="w-16 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-lg px-2 py-1 text-sm font-bold text-center appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                                />
+                                <select 
+                                    value={websiteFilterUnit} 
+                                    onChange={(e) => setWebsiteFilterUnit(e.target.value as 'days' | 'months' | 'years')}
+                                    className="bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-lg px-2 py-1 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500/50 cursor-pointer"
+                                >
+                                    <option value="days">Days</option>
+                                    <option value="months">Months</option>
+                                    <option value="years">Years</option>
+                                </select>
                             </div>
 
-                            <div className="space-y-2">
-                                {linkedWebsites.map((site, idx) => (
-                                    <div key={idx} className="flex items-center gap-4 p-4 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 hover:bg-white dark:bg-white/5 dark:hover:bg-white/10 transition-all group">
-                                        <div className="w-8 h-8 rounded-lg bg-white dark:bg-black/40 flex items-center justify-center border border-slate-200 dark:border-white/10 shrink-0">
-                                            {site.favicon ? (
-                                                <img src={site.favicon} alt="" className="w-5 h-5 object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                                            ) : (
-                                                <span className="material-symbols-rounded text-slate-400 text-[16px]">public</span>
-                                            )}
+                            <div className="flex-1 overflow-y-auto space-y-3 pr-2 custom-scrollbar min-h-[300px]">
+                                {filteredWebsites.map((site, idx) => (
+                                    <div key={idx} className="flex flex-col p-4 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 hover:border-indigo-200 dark:hover:border-indigo-500/30 hover:shadow-md transition-all group">
+                                        
+                                        <div className="flex items-start gap-4">
+                                            <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-black/40 flex items-center justify-center border border-slate-100 dark:border-white/10 shrink-0 shadow-sm relative overflow-hidden group-hover:scale-105 transition-transform duration-300">
+                                                {site.favicon ? (
+                                                    <img src={site.favicon} alt="" className="w-6 h-6 object-contain z-10" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                                                ) : (
+                                                    <span className="material-symbols-rounded text-slate-400 text-[20px] z-10">public</span>
+                                                )}
+                                                <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/5 tracking-wider opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                            </div>
+
+                                            <div className="flex-1 min-w-0">
+                                                <h4 className="font-bold text-slate-800 dark:text-white text-base truncate mb-0.5" title={site.domain}>{site.domain}</h4>
+                                                <p className="text-xs text-slate-500 dark:text-slate-400 truncate flex items-center gap-1.5" title={site.url}>
+                                                    <span className="material-symbols-rounded text-[12px] opacity-70">history</span>
+                                                    Last used {getRelativeTime(site.lastUsed)}
+                                                </p>
+                                            </div>
                                         </div>
 
-                                        <div className="flex-1 min-w-0">
-                                            <h4 className="font-bold text-slate-800 dark:text-white text-sm truncate">{site.domain}</h4>
-                                            <p className="text-xs text-slate-400 truncate">{site.url}</p>
+                                        <div className="mt-4 pt-3 border-t border-slate-100 dark:border-white/5 flex items-center justify-between">
+                                            <button 
+                                                onClick={() => onNavigateToNotes && onNavigateToNotes(site.domain)}
+                                                className="px-4 py-2 bg-indigo-50 dark:bg-indigo-500/10 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 text-indigo-700 dark:text-indigo-400 rounded-lg text-sm font-black transition-colors active:scale-95 flex items-center gap-2 border border-indigo-100 dark:border-transparent"
+                                            >
+                                                <span className="material-symbols-rounded text-[16px]">description</span>
+                                                {site.count} Note{site.count !== 1 ? 's' : ''}
+                                            </button>
+
+                                            <a
+                                                href={site.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="w-9 h-9 rounded-full bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 transition-colors text-slate-600 dark:text-slate-300 flex items-center justify-center active:scale-95"
+                                                title="Visit Site"
+                                            >
+                                                <span className="material-symbols-rounded text-[16px]">open_in_new</span>
+                                            </a>
                                         </div>
 
-                                        <div className="px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20">
-                                            <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">{site.count} Note{site.count !== 1 ? 's' : ''}</span>
-                                        </div>
-
-                                        <a
-                                            href={site.url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="px-4 py-2 rounded-lg bg-slate-200 dark:bg-white/10 hover:bg-indigo-500 hover:text-white dark:hover:bg-indigo-600 transition-colors text-xs font-bold text-slate-600 dark:text-slate-300 flex items-center gap-1"
-                                        >
-                                            Visit
-                                            <span className="material-symbols-rounded text-[14px]">open_in_new</span>
-                                        </a>
                                     </div>
                                 ))}
-                                {linkedWebsites.length === 0 && (
-                                    <div className="text-center py-12 text-slate-400 opacity-60">No linked websites yet</div>
+                                {filteredWebsites.length === 0 && (
+                                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                                        <div className="w-16 h-16 bg-slate-100 dark:bg-white/5 rounded-full flex items-center justify-center mb-4">
+                                            <span className="material-symbols-rounded text-3xl text-slate-300 dark:text-slate-600">search_off</span>
+                                        </div>
+                                        <h4 className="text-lg font-bold text-slate-600 dark:text-slate-300 mb-1">No websites found</h4>
+                                        <p className="text-sm text-slate-500 max-w-xs mx-auto">Try adjusting your time range or saving some notes first.</p>
+                                    </div>
                                 )}
                             </div>
                         </div>
