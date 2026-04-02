@@ -2,6 +2,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import StickyNotes from './components/StickyNotes';
 import { storage } from './utils/storage';
+import type { PanelLayout, AppSettings } from './types';
 
 const id = 'kuviyam-root';
 let panelMounted = false;
@@ -254,28 +255,151 @@ async function mountPanel() {
   panelMounted = true;
 }
 
-// Auto-restore on load if was open
-storage.getPanelLayout().then(layout => {
-  if (layout.isOpen) {
-    mountPanel();
-  }
+const toggleContainerDisplay = (container: HTMLElement, forceOpen?: boolean): boolean => {
+  const isHidden = container.style.display === 'none';
+  const shouldOpen = forceOpen !== undefined ? forceOpen : isHidden;
+  container.style.display = shouldOpen ? 'block' : 'none';
+  return shouldOpen;
+};
+
+const MY_INSTANCE_ID = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36);
+
+let currentStickMode: 'global' | 'per-tab' = 'global';
+
+const claimGlobalInstance = () => {
+    if (currentStickMode === 'global') {
+        const domain = window.location.hostname;
+        chrome.storage.local.set({ activeGlobalInstance: MY_INSTANCE_ID });
+        storage.addTravelHistory(domain);
+    }
+};
+
+// Setup focus listener to "summon" physical note
+window.addEventListener('focus', claimGlobalInstance);
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && document.hasFocus()) {
+        claimGlobalInstance();
+    }
 });
+
+chrome.runtime.onMessage.addListener((message) => {
+    if (message.type === 'KUV_TAB_ACTIVATED') {
+        if (document.hasFocus() || document.visibilityState === 'visible') {
+            claimGlobalInstance();
+        }
+    }
+});
+
+const updateGlobalVisibility = async (isOpen: boolean, activeGlobalInstance?: string) => {
+    if (currentStickMode !== 'global') return;
+    
+    let isAllowed = false;
+    let isActive = false;
+
+    if (activeGlobalInstance !== undefined) {
+        isActive = (activeGlobalInstance === MY_INSTANCE_ID);
+    } else {
+        const res = await chrome.storage.local.get('activeGlobalInstance');
+        isActive = (res.activeGlobalInstance === MY_INSTANCE_ID);
+    }
+
+    try {
+        const allowedDomains = await storage.getAllowedDomains();
+        isAllowed = allowedDomains.includes(window.location.hostname);
+    } catch(e) {}
+
+    const shouldShow = isOpen && (isActive || isAllowed);
+    
+    if (shouldShow) mountPanel();
+    
+    const root = document.getElementById(id);
+    if (root?.shadowRoot) {
+        const container = root.shadowRoot.querySelector('#kuviyam-panel-container') as HTMLElement;
+        if (container) container.style.display = shouldShow ? 'block' : 'none';
+    }
+};
+
+const init = async () => {
+  const settings = await storage.getSettings();
+  const layout = await storage.getPanelLayout();
+  currentStickMode = settings.stickMode;
+
+  if (currentStickMode === 'global') {
+    // If the tab is already focused when script loads (e.g. new tab or reload), claim it immediately.
+    if (document.hasFocus()) {
+        claimGlobalInstance();
+    }
+    // Determine visibility based on active tab state and history
+    updateGlobalVisibility(layout.isOpen);
+  } else {
+    // Per-Tab Mode: auto-mount only if THIS tab had it open (survives page refresh via session)
+    try {
+        const tabStick = window.sessionStorage.getItem('kuviyam_tab_open');
+        if (tabStick === 'true') {
+          mountPanel();
+        }
+    } catch (e) {
+        // Ignored. Some pages block sessionStorage due to security rules.
+    }
+  }
+
+  // Unified global storage listener
+  chrome.storage.onChanged.addListener((changes) => {
+    // 1. React to settings changes
+    if (changes.settings && changes.settings.newValue) {
+        const newSettings = changes.settings.newValue as AppSettings;
+        currentStickMode = newSettings.stickMode || 'global';
+    }
+
+    // 2. React to active instance or layout changes in Global Mode
+    if (currentStickMode === 'global') {
+        if (changes.panelLayout || changes.activeGlobalInstance || changes.allowedDomains) {
+            chrome.storage.local.get(['panelLayout', 'activeGlobalInstance'], (res) => {
+                const layout = res.panelLayout as PanelLayout | undefined;
+                const activeInstance = res.activeGlobalInstance as string | undefined;
+                const isOpen = layout ? layout.isOpen : false;
+                updateGlobalVisibility(isOpen, activeInstance);
+            });
+        }
+    }
+  });
+};
+
+init();
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'KUV_OPEN_PANEL' || message.type === 'KUV_TOGGLE_PANEL') {
-    mountPanel();
-    const root = document.getElementById(id);
-    if (root && root.shadowRoot) {
-      const container = root.shadowRoot.querySelector('#kuviyam-panel-container') as HTMLElement;
-      if (container) {
-        if (message.type === 'KUV_TOGGLE_PANEL') {
-          container.style.display = container.style.display === 'none' ? 'block' : 'none';
-        } else {
-          container.style.display = 'block';
+    
+    (async () => {
+        const settings = await storage.getSettings();
+        const layout = await storage.getPanelLayout();
+        
+        mountPanel();
+        const root = document.getElementById(id);
+        
+        if (root && root.shadowRoot) {
+            const container = root.shadowRoot.querySelector('#kuviyam-panel-container') as HTMLElement;
+            if (container) {
+                const isForceOpen = message.type === 'KUV_OPEN_PANEL' ? true : undefined;
+                const isOpenNow = toggleContainerDisplay(container, isForceOpen);
+                
+                if (currentStickMode === 'global') {
+                    // Force this instance to be the active one since user interacted with it
+                    chrome.storage.local.set({ activeGlobalInstance: MY_INSTANCE_ID });
+                    storage.addTravelHistory(window.location.hostname);
+                    await storage.savePanelLayout({ ...layout, isOpen: isOpenNow });
+                } else {
+                    // Save local to tab's runtime, don't affect global visibility
+                    try {
+                        window.sessionStorage.setItem('kuviyam_tab_open', isOpenNow.toString());
+                    } catch (e) {}
+                    // Force global isOpen to false so it doesn't leak to fresh tabs
+                    await storage.savePanelLayout({ ...layout, isOpen: false });
+                }
+            }
         }
-      }
-    }
-    Promise.resolve().then(() => sendResponse({ success: true }));
+        sendResponse({ success: true });
+    })();
+    return true; // Keep channel open for async response
   }
-  return true; // Keeps the message channel open for the async response if needed
 });
