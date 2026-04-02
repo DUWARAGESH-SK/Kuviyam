@@ -65,9 +65,23 @@ function App() {
       }
 
       const url = tab.url || "";
+      
+      // If URL is completely hidden from us, it's heavily restricted (usually a local file:// without permissions)
+      if (!url) {
+        setStatusMsg("Enable 'Allow access to file URLs' in settings!");
+        setTimeout(() => setStatusMsg(""), 5000);
+        return;
+      }
+
       if (url.startsWith("edge://") || url.startsWith("chrome://") || url.startsWith("about:") || url.startsWith("chrome-extension:") || url.includes("chrome.google.com/webstore")) {
         setStatusMsg("Can't open on this page.");
         setTimeout(() => setStatusMsg(""), 3000);
+        return;
+      }
+
+      if (url.startsWith("file://")) {
+        setStatusMsg("Enable 'Allow access to file URLs' in extension settings!");
+        setTimeout(() => setStatusMsg(""), 4000);
         return;
       }
 
@@ -77,9 +91,45 @@ function App() {
         await chrome.tabs.sendMessage(tabId, { type: "KUV_OPEN_PANEL" });
         window.close();
       } catch (err: any) {
-        const msg = err?.message || String(err);
-        setStatusMsg("Edge Err: " + msg.substring(0, 30));
-        setTimeout(() => setStatusMsg(""), 4000);
+        // Content script likely missing (pre-opened tab)
+        try {
+            const manifest = chrome.runtime.getManifest();
+            const contentScripts = manifest.content_scripts?.[0];
+            
+            if (contentScripts && contentScripts.js) {
+                setStatusMsg("Injecting script...");
+                await chrome.scripting.executeScript({
+                    target: { tabId },
+                    files: contentScripts.js
+                });
+                
+                if (contentScripts.css) {
+                    await chrome.scripting.insertCSS({
+                        target: { tabId },
+                        files: contentScripts.css
+                    });
+                }
+                
+                // Wait briefly for the listener to initialize
+                setTimeout(async () => {
+                    try {
+                        await chrome.tabs.sendMessage(tabId, { type: "KUV_OPEN_PANEL" });
+                        window.close();
+                    } catch (e: any) {
+                         const msg = e?.message ? e.message.substring(0, 20) : "Failed";
+                         setStatusMsg("Err: " + msg);
+                         setTimeout(() => setStatusMsg(""), 3000);
+                    }
+                }, 200);
+            } else {
+                setStatusMsg("Missing manifest script.");
+                setTimeout(() => setStatusMsg(""), 3000);
+            }
+        } catch (injectErr: any) {
+            const msg = injectErr?.message ? injectErr.message.substring(0, 20) : "Denied";
+            setStatusMsg("Inject Err: " + msg);
+            setTimeout(() => setStatusMsg(""), 4000);
+        }
       }
 
     } catch (e) {
@@ -322,25 +372,22 @@ function App() {
         {/* Header */}
         <header className="relative flex justify-between items-center mb-8 z-10 mt-2">
           <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="Kuviyam Logo" className="w-12 h-12 rounded-2xl shadow-md border border-slate-100 dark:border-slate-800 object-cover shrink-0" />
-            <h1 className="text-4xl font-extrabold text-[#1E293B] dark:text-white tracking-tight title-embossed pt-1 shrink-0">Kuviyam</h1>
+            <img src="/logo.png" alt="Kuviyam Notes Logo" className="w-12 h-12 rounded-2xl shadow-md border border-slate-100 dark:border-slate-800 object-cover shrink-0" />
+            <h1 className="text-3xl font-extrabold text-[#1E293B] dark:text-white tracking-tight title-embossed shrink-0">Kuviyam Notes</h1>
           </div>
           <div className="flex gap-2 shrink-0">
             <button
               onClick={handleOpenPanel}
-              className="w-11 h-11 rounded-full bg-white dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 active:scale-95 transition-transform px-0 cursor-pointer"
-              title="Open Persistent Panel"
+              className="w-11 h-11 rounded-full bg-white dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700 flex items-center justify-center active:scale-95 transition-transform px-0 cursor-pointer overflow-hidden"
+              title="Sticky Notes"
             >
-              <span className="material-symbols-rounded text-[22px]">filter_list</span>
+              <img src="/sticky-notes-icon.svg" alt="Sticky Notes" className="w-7 h-7 object-contain" />
             </button>
             <button
               onClick={toggleTheme}
               className="w-11 h-11 rounded-full bg-white dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 active:scale-95 transition-transform px-0 cursor-pointer"
             >
               <span className="material-symbols-rounded text-[22px]">{isDark ? 'light_mode' : 'dark_mode'}</span>
-            </button>
-            <button className="w-11 h-11 rounded-full bg-white dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 active:scale-95 transition-transform px-0 cursor-pointer">
-              <span className="material-symbols-rounded text-[22px]">menu</span>
             </button>
           </div>
         </header>
