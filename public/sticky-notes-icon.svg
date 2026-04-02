@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="240" height="240">
+  <!-- Blue shadow note (back) -->
+  <g transform="rotate(-8, 120, 130)">
+    <rect x="35" y="55" width="155" height="165" rx="6" ry="6" fill="#89B4E8" stroke="#2D3A4A" stroke-width="8"/>
+    <!-- Folded corner on back -->
+    <polygon points="155,200 190,200 190,220" fill="#6A99CC" stroke="#2D3A4A" stroke-width="4"/>
+  </g>
+
+  <!-- Yellow main note -->
+  <g transform="rotate(2, 120, 130)">
+    <polygon points="42,65 185,65 185,210 155,210 155,235 42,235" fill="#F7C948" stroke="#2D3A4A" stroke-width="8" stroke-linejoin="round"/>
+    <!-- Folded bottom-right corner -->
+    <polygon points="155,210 185,210 155,235" fill="#D4A020" stroke="#2D3A4A" stroke-width="6" stroke-linejoin="round"/>
+    <!-- Note lines -->
+    <line x1="65" y1="115" x2="165" y2="105" stroke="#2D3A4A" stroke-width="7" stroke-linecap="round" opacity="0.7"/>
+    <line x1="65" y1="145" x2="165" y2="135" stroke="#2D3A4A" stroke-width="7" stroke-linecap="round" opacity="0.7"/>
+    <line x1="65" y1="175" x2="140" y2="167" stroke="#2D3A4A" stroke-width="7" stroke-linecap="round" opacity="0.7"/>
+  </g>
+
+  <!-- Paperclip -->
+  <g transform="translate(148, 18) rotate(12)">
+    <!-- Outer loop -->
+    <path d="M18,0 Q36,0 36,18 L36,58 Q36,76 18,76 Q0,76 0,58 L0,18 Q0,0 18,0 Z" fill="none" stroke="#DADADA" stroke-width="10"/>
+    <!-- Inner loop -->
+    <path d="M18,14 Q22,14 22,18 L22,58 Q22,62 18,62 Q14,62 14,58 L14,18 Q14,14 18,14 Z" fill="none" stroke="#DADADA" stroke-width="7"/>
+    <!-- Clip tip -->
+    <line x1="18" y1="62" x2="18" y2="76" stroke="#DADADA" stroke-width="10" stroke-linecap="round"/>
+    <!-- Outline -->
+    <path d="M18,0 Q36,0 36,18 L36,58 Q36,76 18,76 Q0,76 0,58 L0,18 Q0,0 18,0 Z" fill="none" stroke="#2D3A4A" stroke-width="4" stroke-dasharray="0"/>
+  </g>
+</svg>
