@@ -1,17 +1,18 @@
+import { api } from '@/shared/api';
 import { storage } from '../shared/storage';
 import type { NoteDraft } from '../types';
 
 console.log("Kuviyam Notes Background Script Loaded");
 
-chrome.runtime.onInstalled.addListener(() => {
-    chrome.contextMenus.create({
+api.runtime.onInstalled.addListener(() => {
+    api.contextMenus.create({
         id: "save-to-kuviyam",
         title: "Save to Kuviyam Notes",
         contexts: ["selection"]
     });
 });
 
-chrome.contextMenus.onClicked.addListener(async (info, tab) => {
+api.contextMenus.onClicked.addListener(async (info, tab) => {
     if (info.menuItemId === "save-to-kuviyam" && info.selectionText) {
         const draft: NoteDraft = {
             title: tab?.title || "Clipped Note",
@@ -24,8 +25,8 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 
         try {
             await storage.createNote(draft);
-            chrome.action.setBadgeText({ text: "OK" });
-            setTimeout(() => chrome.action.setBadgeText({ text: "" }), 2000);
+            api.action.setBadgeText({ text: "OK" });
+            setTimeout(() => api.action.setBadgeText({ text: "" }), 2000);
         } catch (err) {
             console.error("Failed to save note", err);
         }
@@ -33,32 +34,47 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 });
 
 // ✅ KEYBOARD SHORTCUT HANDLER
-chrome.commands.onCommand.addListener((command) => {
+api.commands.onCommand.addListener((command) => {
     if (command === "toggle-panel") {
-        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-            const tabId = tabs[0]?.id;
-            if (tabId) {
+        
+api.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    const tabId = tabs[0]?.id;
+    const url = tabs[0]?.url;
+
+    function isRestrictedUrl(u: string | undefined): boolean {
+        if (!u) return true;
+        const restricted = ["edge://", "chrome://", "about:", "chrome-extension://", "moz-extension://", "file://"];
+        if (restricted.some(p => u.startsWith(p))) return true;
+        try {
+            const urlObj = new URL(u);
+            if (urlObj.hostname === "chrome.google.com" || urlObj.hostname === "addons.mozilla.org" || urlObj.hostname === "microsoftedge.microsoft.com") return true;
+        } catch(e) {}
+        return false;
+    }
+
+    if (tabId && !isRestrictedUrl(url)) {
+
                 // Check if we can sendMessage (skip restricted pages check here, let content script handle or fail silently)
-                chrome.tabs.sendMessage(tabId, {
+                api.tabs.sendMessage(tabId, {
                     type: "KUV_TOGGLE_PANEL"
                 }).catch(async () => {
                     // Content script might not be loaded on this tab (e.g. pre-opened tab)
                     try {
-                        const manifest = chrome.runtime.getManifest();
+                        const manifest = api.runtime.getManifest();
                         const contentScripts = manifest.content_scripts?.[0];
                         if (contentScripts && contentScripts.js) {
-                            await chrome.scripting.executeScript({
+                            await api.scripting.executeScript({
                                 target: { tabId },
                                 files: contentScripts.js
                             });
                             if (contentScripts.css) {
-                                await chrome.scripting.insertCSS({
+                                await api.scripting.insertCSS({
                                     target: { tabId },
                                     files: contentScripts.css
                                 });
                             }
                             setTimeout(() => {
-                                chrome.tabs.sendMessage(tabId, { type: "KUV_TOGGLE_PANEL" }).catch(() => {});
+                                api.tabs.sendMessage(tabId, { type: "KUV_TOGGLE_PANEL" }).catch(() => {});
                             }, 200);
                         }
                     } catch (e) {
@@ -70,7 +86,24 @@ chrome.commands.onCommand.addListener((command) => {
     }
 });
 
+
 const ensureScriptInjectedAndActivate = async (tabId: number) => {
+    try {
+        const tab = await api.tabs.get(tabId);
+        function isRestrictedUrl(u: string | undefined): boolean {
+            if (!u) return true;
+            const restricted = ["edge://", "chrome://", "about:", "chrome-extension://", "moz-extension://", "file://"];
+            if (restricted.some(p => u.startsWith(p))) return true;
+            try {
+                const urlObj = new URL(u);
+                if (urlObj.hostname === "chrome.google.com" || urlObj.hostname === "addons.mozilla.org" || urlObj.hostname === "microsoftedge.microsoft.com") return true;
+            } catch(e) {}
+            return false;
+        }
+
+        if (isRestrictedUrl(tab.url)) return;
+    } catch(e) { return; }
+
     try {
         const settings = await storage.getSettings();
         if (settings.stickMode !== 'global') return;
@@ -78,24 +111,24 @@ const ensureScriptInjectedAndActivate = async (tabId: number) => {
         const layout = await storage.getPanelLayout();
         if (!layout.isOpen) return;
 
-        chrome.tabs.sendMessage(tabId, { type: "KUV_TAB_ACTIVATED" }).catch(async () => {
+        api.tabs.sendMessage(tabId, { type: "KUV_TAB_ACTIVATED" }).catch(async () => {
             // Content script might not be loaded on this tab (e.g. pre-opened tab)
             try {
-                const manifest = chrome.runtime.getManifest();
+                const manifest = api.runtime.getManifest();
                 const contentScripts = manifest.content_scripts?.[0];
                 if (contentScripts && contentScripts.js) {
-                    await chrome.scripting.executeScript({
+                    await api.scripting.executeScript({
                         target: { tabId },
                         files: contentScripts.js
                     });
                     if (contentScripts.css) {
-                        await chrome.scripting.insertCSS({
+                        await api.scripting.insertCSS({
                             target: { tabId },
                             files: contentScripts.css
                         });
                     }
                     setTimeout(() => {
-                        chrome.tabs.sendMessage(tabId, { type: "KUV_TAB_ACTIVATED" }).catch(() => {});
+                        api.tabs.sendMessage(tabId, { type: "KUV_TAB_ACTIVATED" }).catch(() => {});
                     }, 200);
                 }
             } catch (e) {
@@ -105,11 +138,11 @@ const ensureScriptInjectedAndActivate = async (tabId: number) => {
     } catch(e) {}
 };
 
-chrome.tabs.onActivated.addListener((activeInfo) => {
+api.tabs.onActivated.addListener((activeInfo) => {
     ensureScriptInjectedAndActivate(activeInfo.tabId);
 });
 
-chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+api.tabs.onUpdated.addListener((tabId, changeInfo) => {
     if (changeInfo.status === 'complete') {
         ensureScriptInjectedAndActivate(tabId);
     }
