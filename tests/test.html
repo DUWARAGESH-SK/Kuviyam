@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kuviyam Test Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #1a1b26;
+            color: #a9b1d6;
+        }
+        h1 { color: #7aa2f7; }
+        .instructions {
+            background: #24283b;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .step {
+            margin: 10px 0;
+            padding: 10px;
+            background: #1a1b26;
+            border-left: 3px solid #7aa2f7;
+        }
+        code {
+            background: #414868;
+            padding: 2px 6px;
+            border-radius: 3px;
+            color: #7dcfff;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Kuviyam Extension Test Page</h1>
+    
+    <div class="instructions">
+        <h2>Testing Instructions:</h2>
+        
+        <div class="step">
+            <strong>Step 1:</strong> Open DevTools (F12) and check the Console tab
+        </div>
+        
+        <div class="step">
+            <strong>Step 2:</strong> Look for this message: <code>[Kuviyam] Content script loaded</code>
+        </div>
+        
+        <div class="step">
+            <strong>Step 3:</strong> Press <code>Alt+Shift+P</code> to toggle the panel
+        </div>
+        
+        <div class="step">
+            <strong>Step 4:</strong> OR click the extension icon and press <code>📌 Open Panel</code>
+        </div>
+        
+        <div class="step">
+            <strong>Expected Result:</strong> A floating panel should appear with "KUVIYAM" header
+        </div>
+    </div>
+
+    <div class="instructions">
+        <h2>Troubleshooting:</h2>
+        <ul>
+            <li>If no console message appears → Content script not injected</li>
+            <li>Check <code>edge://extensions</code> → Ensure Kuviyam is enabled</li>
+            <li>Click "Reload" on the extension</li>
+            <li>Refresh this page</li>
+            <li>Check for errors in the extension's service worker console</li>
+        </ul>
+    </div>
+
+    <script>
+        // Simple test to verify page is interactive
+        console.log("✅ Test page loaded successfully");
+        console.log("👀 Waiting for Kuviyam content script...");
+        
+        // Check if Kuviyam injected
+        setTimeout(() => {
+            const kuviyamRoot = document.getElementById('kuviyam-root');
+            if (kuviyamRoot) {
+                console.log("✅ Kuviyam container found!");
+            } else {
+                console.warn("⚠️ Kuviyam container NOT found - content script may not be running");
+            }
+        }, 2000);
+    </script>
+</body>
+</html>
