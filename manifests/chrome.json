@@ -1,0 +1,68 @@
+{
+    "manifest_version": 3,
+    "name": "Kuviyam Notes",
+    "version": "1.0.0",
+    "description": "Kuviyam Notes — A lightweight, privacy-first note-taking extension with sticky note UI.",
+    "permissions": [
+        "storage",
+        "activeTab",
+        "scripting",
+        "contextMenus",
+        "sidePanel",
+        "tabs"
+    ],
+    "host_permissions": [
+        "<all_urls>"
+    ],
+    "action": {
+        "default_popup": "index.html",
+        "default_title": "Kuviyam Notes",
+        "default_icon": {
+            "16": "logo.png",
+            "32": "logo.png",
+            "48": "logo.png",
+            "128": "logo.png"
+        }
+    },
+    "icons": {
+        "16": "logo.png",
+        "32": "logo.png",
+        "48": "logo.png",
+        "128": "logo.png"
+    },
+    "web_accessible_resources": [
+        {
+            "resources": [
+                "logo.png",
+                "sticky-notes-icon.svg"
+            ],
+            "matches": [
+                "<all_urls>"
+            ]
+        }
+    ],
+    "background": {
+        "service_worker": "src/background/index.ts",
+        "type": "module"
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "<all_urls>"
+            ],
+            "js": [
+                "src/content/index.tsx"
+            ]
+        }
+    ],
+    "commands": {
+        "toggle-panel": {
+            "suggested_key": {
+                "default": "Alt+Shift+P",
+                "mac": "Alt+Shift+P",
+                "windows": "Alt+Shift+P"
+            },
+            "description": "Toggle Kuviyam Floating Panel"
+        }
+    }
+}
