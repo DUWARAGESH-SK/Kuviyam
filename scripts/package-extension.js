@@ -15,16 +15,36 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const browser = process.argv[2] || 'chrome';
-const validBrowsers = ['chrome', 'firefox'];
+const validBrowsers = ['chrome', 'chromium', 'firefox'];
 
 if (!validBrowsers.includes(browser)) {
-  console.error(`❌ Unknown browser "${browser}". Use: chrome | firefox`);
+  console.error(`❌ Unknown browser "${browser}". Use: chromium | firefox`);
   process.exit(1);
 }
 
 const zip = new JSZip();
-const distPath = path.join(__dirname, '..', 'dist');
-const outputFile = path.join(__dirname, '..', `kuviyam-notes-${browser}.zip`);
+const distFolderName = browser === 'chrome' ? 'chromium' : browser;
+const distPath = path.join(__dirname, '..', 'dist', distFolderName);
+const outputFile = path.join(__dirname, '..', `kuviyam-notes-${distFolderName}.zip`);
+
+if (!fs.existsSync(distPath)) {
+  console.error(`❌ Dist path not found: ${distPath}`);
+  process.exit(1);
+}
+
+// Firefox does not support use_dynamic_url and throws a warning.
+if (browser === 'firefox') {
+  const manifestFile = path.join(distPath, 'manifest.json');
+  if (fs.existsSync(manifestFile)) {
+    const manifestData = JSON.parse(fs.readFileSync(manifestFile, 'utf8'));
+    if (manifestData.web_accessible_resources) {
+      manifestData.web_accessible_resources.forEach(item => {
+        delete item.use_dynamic_url;
+      });
+      fs.writeFileSync(manifestFile, JSON.stringify(manifestData, null, 2));
+    }
+  }
+}
 
 function addFolderToZip(folderPath, zipFolder) {
   const items = fs.readdirSync(folderPath);
