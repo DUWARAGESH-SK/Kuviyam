@@ -3,8 +3,10 @@
 @tailwind utilities;
 
 body {
-  @apply bg-tokyo-bg text-tokyo-fg overflow-hidden;
+  @apply bg-tokyo-bg text-tokyo-fg;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 @layer utilities {
