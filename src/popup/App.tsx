@@ -1,3 +1,4 @@
+import { api } from '@/shared/api';
 import { useState, useEffect, useMemo } from 'react';
 import type { Note, NoteDraft } from '../types';
 import { storage } from '../shared/storage';
@@ -39,7 +40,7 @@ function App() {
       document.documentElement.classList.add('dark');
     }
 
-    chrome.tabs.query({ active: true, currentWindow: true }).then(([tab]) => {
+    api.tabs.query({ active: true, currentWindow: true }).then(([tab]) => {
       if (tab?.url) {
         try {
           setCurrentDomain(new URL(tab.url).hostname);
@@ -58,7 +59,7 @@ function App() {
   const handleOpenPanel = async () => {
     setStatusMsg("Opening...");
     try {
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      const [tab] = await api.tabs.query({ active: true, currentWindow: true });
 
       if (!tab?.id) {
         setStatusMsg("No active tab.");
@@ -67,45 +68,45 @@ function App() {
 
       const url = tab.url || "";
       
-      // If URL is completely hidden from us, it's heavily restricted (usually a local file:// without permissions)
-      if (!url) {
-        setStatusMsg("Enable 'Allow access to file URLs' in settings!");
-        setTimeout(() => setStatusMsg(""), 5000);
-        return;
-      }
+      
+      
+function isRestrictedUrl(u: string): boolean {
+    if (!u) return true;
+    const restricted = ["edge://", "chrome://", "about:", "chrome-extension://", "moz-extension://", "file://"];
+    if (restricted.some((p: string) => u.startsWith(p))) return true;
+    try {
+        const urlObj = new URL(u);
+        if (urlObj.hostname === "chrome.google.com" || urlObj.hostname === "addons.mozilla.org" || urlObj.hostname === "microsoftedge.microsoft.com") return true;
+    } catch(e) {}
+    return false;
+}
 
-      if (url.startsWith("edge://") || url.startsWith("chrome://") || url.startsWith("about:") || url.startsWith("chrome-extension:") || url.includes("chrome.google.com/webstore")) {
-        setStatusMsg("Can't open on this page.");
+      if (isRestrictedUrl(url)) {
+        setStatusMsg("Can't open on restricted pages.");
         setTimeout(() => setStatusMsg(""), 3000);
         return;
       }
-
-      if (url.startsWith("file://")) {
-        setStatusMsg("Enable 'Allow access to file URLs' in extension settings!");
-        setTimeout(() => setStatusMsg(""), 4000);
-        return;
-      }
-
       const tabId = tab.id;
 
+
       try {
-        await chrome.tabs.sendMessage(tabId, { type: "KUV_OPEN_PANEL" });
+        await api.tabs.sendMessage(tabId, { type: "KUV_OPEN_PANEL" });
         window.close();
       } catch (err: any) {
         // Content script likely missing (pre-opened tab)
         try {
-            const manifest = chrome.runtime.getManifest();
+            const manifest = api.runtime.getManifest();
             const contentScripts = manifest.content_scripts?.[0];
             
             if (contentScripts && contentScripts.js) {
                 setStatusMsg("Injecting script...");
-                await chrome.scripting.executeScript({
+                await api.scripting.executeScript({
                     target: { tabId },
                     files: contentScripts.js
                 });
                 
                 if (contentScripts.css) {
-                    await chrome.scripting.insertCSS({
+                    await api.scripting.insertCSS({
                         target: { tabId },
                         files: contentScripts.css
                     });
@@ -114,7 +115,7 @@ function App() {
                 // Wait briefly for the listener to initialize
                 setTimeout(async () => {
                     try {
-                        await chrome.tabs.sendMessage(tabId, { type: "KUV_OPEN_PANEL" });
+                        await api.tabs.sendMessage(tabId, { type: "KUV_OPEN_PANEL" });
                         window.close();
                     } catch (e: any) {
                          const msg = e?.message ? e.message.substring(0, 20) : "Failed";
@@ -177,7 +178,7 @@ function App() {
   });
 
   const handleCreateNote = async () => {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    const [tab] = await api.tabs.query({ active: true, currentWindow: true });
     setEditingNote({
       id: '',
       title: tab?.title || '',
@@ -216,7 +217,7 @@ function App() {
   };
 
   const handleDeleteAll = async () => {
-    await chrome.storage.local.clear();
+    await api.storage.local.clear();
     setNotes([]);
     setEditingNote(null);
     setCurrentDomain('');
@@ -261,7 +262,7 @@ function App() {
 
   if (view === 'folders') {
     return (
-      <div className="w-[450px] min-h-[884px] font-display bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-100 overflow-x-hidden relative flex flex-col">
+      <div className="w-[450px] min-h-[884px] font-display bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-100 overflow-x-hidden overflow-y-auto relative flex flex-col">
         <FoldersPanel onEditNote={handleEditNote} />
 
         <nav className="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl ios-tab-shadow px-6 pb-8 pt-4 z-50">
@@ -312,7 +313,7 @@ function App() {
 
   if (view === 'settings') {
     return (
-      <div className="w-[450px] min-h-[884px] font-display bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-100 overflow-x-hidden relative flex flex-col">
+      <div className="w-[450px] min-h-[884px] font-display bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-100 overflow-x-hidden overflow-y-auto relative flex flex-col">
         <SettingsPage onDeleteAll={handleDeleteAll} onNavigateToNotes={(domain: string) => {
           setSelectedDomainFilter(domain);
           setView('list');
@@ -366,7 +367,7 @@ function App() {
 
 
   return (
-    <div className="w-[450px] min-h-[884px] font-display bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-100 overflow-x-hidden relative">
+    <div className="w-[450px] min-h-[884px] font-display bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-100 overflow-x-hidden overflow-y-auto relative">
       <main className="relative z-10 px-6 pt-12 pb-32">
         {/* Doodles Overlay */}
         <div className="doodle-bg-header">
