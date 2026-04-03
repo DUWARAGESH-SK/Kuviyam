@@ -1,3 +1,4 @@
+import { api } from '@/shared/api';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import StickyNotes from '@/features/notes/components/StickyNotes';
@@ -271,7 +272,7 @@ let currentStickMode: 'global' | 'per-tab' = 'global';
 const claimGlobalInstance = () => {
     if (currentStickMode === 'global') {
         const domain = window.location.hostname;
-        chrome.storage.local.set({ activeGlobalInstance: MY_INSTANCE_ID });
+        api.storage.local.set({ activeGlobalInstance: MY_INSTANCE_ID });
         storage.addTravelHistory(domain);
     }
 };
@@ -284,7 +285,7 @@ document.addEventListener('visibilitychange', () => {
     }
 });
 
-chrome.runtime.onMessage.addListener((message) => {
+api.runtime.onMessage.addListener((message) => {
     if (message.type === 'KUV_TAB_ACTIVATED') {
         claimGlobalInstance();
     }
@@ -299,7 +300,7 @@ const updateGlobalVisibility = async (isOpen: boolean, activeGlobalInstance?: st
     if (activeGlobalInstance !== undefined) {
         isActive = (activeGlobalInstance === MY_INSTANCE_ID);
     } else {
-        const res = await chrome.storage.local.get('activeGlobalInstance');
+        const res = await api.storage.local.get('activeGlobalInstance');
         isActive = (res.activeGlobalInstance === MY_INSTANCE_ID);
     }
 
@@ -344,7 +345,7 @@ const init = async () => {
   }
 
   // Unified global storage listener
-  chrome.storage.onChanged.addListener((changes) => {
+  api.storage.onChanged.addListener((changes) => {
     // 1. React to settings changes
     if (changes.settings && changes.settings.newValue) {
         const newSettings = changes.settings.newValue as AppSettings;
@@ -354,7 +355,7 @@ const init = async () => {
     // 2. React to active instance or layout changes in Global Mode
     if (currentStickMode === 'global') {
         if (changes.panelLayout || changes.activeGlobalInstance || changes.allowedDomains) {
-            chrome.storage.local.get(['panelLayout', 'activeGlobalInstance'], (res) => {
+            api.storage.local.get(['panelLayout', 'activeGlobalInstance'], (res) => {
                 const layout = res.panelLayout as PanelLayout | undefined;
                 const activeInstance = res.activeGlobalInstance as string | undefined;
                 const isOpen = layout ? layout.isOpen : false;
@@ -367,7 +368,7 @@ const init = async () => {
 
 init();
 
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+api.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'KUV_OPEN_PANEL' || message.type === 'KUV_TOGGLE_PANEL') {
     
     (async () => {
@@ -385,7 +386,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 
                 if (currentStickMode === 'global') {
                     // Force this instance to be the active one since user interacted with it
-                    chrome.storage.local.set({ activeGlobalInstance: MY_INSTANCE_ID });
+                    api.storage.local.set({ activeGlobalInstance: MY_INSTANCE_ID });
                     storage.addTravelHistory(window.location.hostname);
                     await storage.savePanelLayout({ ...layout, isOpen: isOpenNow });
                 } else {
