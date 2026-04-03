@@ -1,73 +1,52 @@
-# React + TypeScript + Vite
+Kuviyam is a powerful, privacy-first browser extension designed to capture, organize, and connect your ideas directly within your browsing experience. Built as a hub for creativity and structured thinking, Kuviyam transforms the way you take notes on the web.
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Whether you're researching, learning, or brainstorming, Kuviyam acts as your personal workspace—helping you collect ideas, maintain focus, and build a meaningful accumulation of knowledge across the internet.
 
-Currently, two official plugins are available:
+🌟 Key Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+📝 Floating Note Panel
+Create notes instantly on any webpage using a draggable and resizable floating interface. Designed to stay out of your way while remaining easily accessible.
 
-## React Compiler
+🌐 Context-Aware Notes
+Automatically captures the current website’s URL, domain, and favicon, linking every note to its source for better context and recall.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+📂 Smart Organization
+Organize your notes efficiently using custom folders and flexible tagging for quick filtering and retrieval.
 
-## Expanding the ESLint configuration
+💾 Auto-Save & Drafts
+Never lose your thoughts. Notes are automatically saved locally as you type.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+📌 Pin Important Notes
+Highlight and prioritize key ideas by pinning them for quick access.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+🎨 Customizable Themes
+Switch between light and dark modes for a comfortable viewing experience.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+⚙️ Advanced Tools
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+📦 Data Export & Backup
+Download individual notes as .txt files or export all notes and folders as a .zip archive for backup.
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+🗂️ Bulk Management
+Easily filter, select, and delete multiple notes or folders.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+🔗 Linked Websites Tracker
+View all websites where notes were created, complete with site icons and direct access links.
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+🔐 Privacy First
+
+Kuviyam is fully offline and open-source.
+
+No accounts required
+No cloud syncing
+No data tracking
+
+All your data is stored securely in your browser’s local storage, ensuring complete control and privacy.
+
+🌍 Open Source & Free
+
+Kuviyam is built to be accessible to everyone. As an open-source project, anyone can use, modify, or contribute to its development.
+
+💡 Why Kuviyam?
+
+Kuviyam is more than just a note-taking tool—it’s a convergence point for ideas, a structured space for creativity, and a focused environment for capturing intelligence across the web.
