@@ -1,3 +1,4 @@
+import { api } from '@/shared/api';
 import React, { useState, useEffect, useRef } from 'react';
 import { storage } from '../../../shared/storage';
 
@@ -158,7 +159,7 @@ const StickyNotes: React.FC<StickyNotesProps> = ({ onClose }) => {
             setStickMode(mode);
             
             if (mode === 'global') {
-                chrome.storage.local.get(['panelDraft']).then((res) => {
+                api.storage.local.get(['panelDraft']).then((res) => {
                     const draft = res.panelDraft as any;
                     if (draft) {
                         setTitle(draft.title || '');
@@ -200,8 +201,8 @@ const StickyNotes: React.FC<StickyNotesProps> = ({ onClose }) => {
             if (changes.travelHistory) setTravelHistory(changes.travelHistory.newValue || []);
             if (changes.allowedDomains) setAllowedDomains(changes.allowedDomains.newValue || []);
         };
-        chrome.storage.onChanged.addListener(handleLinkedSitesChange);
-        return () => chrome.storage.onChanged.removeListener(handleLinkedSitesChange);
+        api.storage.onChanged.addListener(handleLinkedSitesChange);
+        return () => api.storage.onChanged.removeListener(handleLinkedSitesChange);
     }, []);
 
     // --- REALTIME SYNC (GLOBAL MODE) ---
@@ -224,8 +225,8 @@ const StickyNotes: React.FC<StickyNotesProps> = ({ onClose }) => {
             }
         };
 
-        chrome.storage.onChanged.addListener(handleStorageChange);
-        return () => chrome.storage.onChanged.removeListener(handleStorageChange);
+        api.storage.onChanged.addListener(handleStorageChange);
+        return () => api.storage.onChanged.removeListener(handleStorageChange);
     }, [stickMode]);
 
     // --- AUTO-SAVE DRAFT ---
@@ -238,7 +239,7 @@ const StickyNotes: React.FC<StickyNotesProps> = ({ onClose }) => {
                 const draftObj = { title, content, tags, pinned: isPinned, folderIds, isLinkedToDomain, updatedAt: now };
                 
                 if (stickMode === 'global') {
-                    chrome.storage.local.set({ panelDraft: draftObj });
+                    api.storage.local.set({ panelDraft: draftObj });
                 } else {
                     try { window.sessionStorage.setItem('kuviyam_tab_draft', JSON.stringify(draftObj)); } catch (e) {}
                 }
@@ -349,7 +350,7 @@ const StickyNotes: React.FC<StickyNotesProps> = ({ onClose }) => {
         };
         await storage.createNote(newNote);
         if (stickMode === 'global') {
-            chrome.storage.local.set({ panelDraft: { title: '', content: '', tags: [], pinned: false, folderIds: [], isLinkedToDomain: true, updatedAt: Date.now() } });
+            api.storage.local.set({ panelDraft: { title: '', content: '', tags: [], pinned: false, folderIds: [], isLinkedToDomain: true, updatedAt: Date.now() } });
         } else {
             try { window.sessionStorage.removeItem('kuviyam_tab_draft'); } catch (e) {}
         }
@@ -825,7 +826,7 @@ const StickyNotes: React.FC<StickyNotesProps> = ({ onClose }) => {
             {/* Header */}
             <div style={S.header} onMouseDown={handleDragStart}>
                 <div style={S.headerLeft}>
-                    <img src={chrome.runtime.getURL('logo.png')} alt="Kuviyam" style={{ width: '44px', height: '44px', borderRadius: '12px', flexShrink: 0, boxShadow: '0 4px 14px rgba(99,102,241,0.5)', border: '1px solid rgba(255,255,255,0.1)', objectFit: 'cover' }} />
+                    <img src={api.runtime.getURL('logo.png')} alt="Kuviyam" style={{ width: '44px', height: '44px', borderRadius: '12px', flexShrink: 0, boxShadow: '0 4px 14px rgba(99,102,241,0.5)', border: '1px solid rgba(255,255,255,0.1)', objectFit: 'cover' }} />
                     <span style={{...S.headerTitle, fontSize: '18px', paddingLeft: '4px'}}>Floating Panel</span>
                 </div>
                 <div style={S.headerActions}>
